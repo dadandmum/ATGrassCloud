@@ -1,3 +1,7 @@
+#ifndef __HEIGHT_MAP_LIB_HLSL__
+#define __HEIGHT_MAP_LIB_HLSL__
+
+
 #define MIN_HEIGHT -10.0
 #define MAX_HEIGHT 300.0
 
@@ -57,3 +61,6 @@ float DecodeHeight( float encoded, float2 bounds)
     return encoded * 10.0;
 #endif
 }
+
+
+#endif

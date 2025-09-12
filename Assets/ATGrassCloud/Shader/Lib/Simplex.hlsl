@@ -1,4 +1,7 @@
-﻿// Noise Shader Library for Unity - https://github.com/keijiro/NoiseShader
+﻿#ifndef __SIMPLEX_HLSL__
+#define __SIMPLEX_HLSL__
+
+// Noise Shader Library for Unity - https://github.com/keijiro/NoiseShader
 //
 // Original work (webgl-noise) Copyright (C) 2011 Ashima Arts.
 // Translation and modification was made by Keijiro Takahashi.
@@ -190,3 +193,6 @@ float4 snoise_grad(float3 v)
     float4 px = float4(dot(x0, g0), dot(x1, g1), dot(x2, g2), dot(x3, g3));
     return 42.0 * float4(grad, dot(m4, px));
 }
+
+
+#endif

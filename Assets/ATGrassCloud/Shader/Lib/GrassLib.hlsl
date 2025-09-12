@@ -1,4 +1,6 @@
-﻿
+﻿#ifndef __GRASS_LIB_HLSL__
+#define __GRASS_LIB_HLSL__
+ 
 struct GrassData
 {
     float3 position;
@@ -29,3 +31,8 @@ float grass_Remap(float In, float2 InMinMax, float2 OutMinMax)
 {
     return OutMinMax.x + (In - InMinMax.x) * (OutMinMax.y - OutMinMax.x) / (InMinMax.y - InMinMax.x);
 }
+
+#include "GrassGeometryLib.hlsl"
+
+
+#endif

@@ -98,7 +98,7 @@ namespace ATGrassCloud
             grassDataInit = new GrassData[data.GetMaxInstanceCount()];
             for (int i = 0; i < grassDataInit.Length; i++)
             {
-                grassDataInit[i].position = Vector3.negativeInfinity;
+                grassDataInit[i].position = Vector3.negativeInfinity; 
                 grassDataInit[i].windOffset = 0;
                 grassDataInit[i].rand = Random.Range(0.0f, 1.0f);
             }

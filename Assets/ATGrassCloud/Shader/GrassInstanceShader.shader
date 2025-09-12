@@ -40,6 +40,9 @@
 
         [Header(Lighting)][Space]
         _RandomNormal("Random Normal", Range(0, 1)) = 0.1
+
+        // [Toggle(_SHADER_TIP_SPECULAR)]_ShaderTipSpecular("Shader Tip Specular", Float) = 0
+        // [Toggle(_SHADER_PBR)]_ShaderPBR("Shader PBR", Float) = 1
     }
 
     SubShader
@@ -62,14 +65,14 @@
             #pragma multi_compile _ _ADDITIONAL_LIGHT_SHADOWS
             #pragma multi_compile _ _SHADOWS_SOFT
             #pragma multi_compile _ _PROCEDURAL_MESH
+            // #pragma multi_compile _ _SHADER_TIP_SPECULAR SHADER_PBR
 
             #pragma multi_compile_fog
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
-            #include "Lib/GrassLib.hlsl"
             #include "Lib/GrassShadingLib.hlsl"
-            #include "Lib/GrassGeometryLib.hlsl"
+            #include "Lib/GrassLib.hlsl"
             #include "Lib/Simplex.hlsl"
             #include "Lib/WindLib.hlsl"
             
@@ -216,9 +219,6 @@
 
 
                 // TODO : add wind 
-                // float2 windUV = wind_PosXZ2UV(pivot.xz, _WindPositionParams);
-                // float2 wind = SAMPLE_TEXTURE2D(_WindResultTex, sampler_WindResultTex, windUV).xy;
-                // wind = WindDecode(wind);
                 float2 wind = GetWind(pivot.xz, _WindPositionParams);
                 upDirection = grass_ApplyWindToUp(upDirection, wind, _WindStrength, rand , _WindRandomness, positionModel);
                 
@@ -249,9 +249,7 @@
                 // shading 
                 float specularMask = 0.0; // TODO : pass by map
                 OUT.color = grass_Shading(albedo, _Smoothness, _Metallic, positionWS, normalWS, viewWS, specularMask, positionModel);
-                // half3 windTex = tex2Dlod(_WindTexture, float4(TRANSFORM_TEX(pivot.xz, _WindTexture) + _WindScroll * _Time.y,0,0));
-
-                // OUT.color = float4(0,positionWS.y * 0.1 + 0.5,0,1);
+                
                 return OUT;
 
                 // float grassWidth = _GrassWidth * (1 - grass_random(pivot.x * 950 + pivot.z * 10) * _GrassWidthRandomness);

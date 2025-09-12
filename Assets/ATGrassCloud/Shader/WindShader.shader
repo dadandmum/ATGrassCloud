@@ -3,7 +3,7 @@ Shader "ATGrassCloud/WindShader"
     Properties
     {
         [Header(Wind Settings)]
-        _MainTex ("Texture", 2D) = "white" {}
+        /// _MainTex ("Texture", 2D) = "white" {}
         _WindSampleTex ("Wind Texture", 2D) = "white" {}
         _WindDir("Wind Direction",Vector) = (0.5, 0.3, 0, 0)
         _WindSpeed("Wind Speed",Float) = 1.0
@@ -11,9 +11,16 @@ Shader "ATGrassCloud/WindShader"
 
         [Header(Noise Settings)]
         _NoiseScale ("Noise Scale", Float) = 5.0
-        _NoiseSpeed ("Noise Speed", Vector) = (0.5, 0.3, 0, 0)
+        _NoiseDir ("Noise Direction", Vector) = (0.5, 0.3, 0, 0)
+        _NoiseSpeed ("Noise Speed", float) = 1.0
         _FlowStrength ("Flow Strength", Float) = 1.0
-        _Color ("Base Color", Color) = (0.2, 0.4, 1.0, 1.0)
+
+        
+        [Header(Wind Type)][Space]
+        [Toggle(SIMPLEX_NOISE_WIND)] _SimplexNoiseWind ("Simplex Noise Wind", Float) = 1
+        [Toggle(CURL_NOISE_WIND)] _CurlNoiseWind ("Curl Noise Wind", Float) = 0
+        [Toggle(DISTORT_SIMPLEX_NOISE_WIND)] _DistortCurlNoiseWind ("Distort Curl Noise Wind", Float) = 0
+
     }
     SubShader
     {
@@ -26,6 +33,9 @@ Shader "ATGrassCloud/WindShader"
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
+            #pragma multi_compile _ SIMPLEX_NOISE_WIND DISTORT_SIMPLEX_NOISE_WIND CURL_NOISE_WIND
+
+
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Lib/WindLib.hlsl"
@@ -43,11 +53,10 @@ Shader "ATGrassCloud/WindShader"
                 float2 _WindDir;
                 float _WindSpeed;
                 float _WindScale;
-
-                float2 _NoiseSpeed;
+                float2 _NoiseDir;
+                float _NoiseSpeed;
                 float4 _WindPositionParams; // ( windPos.x, windPos.Z , 1.0 / windRange , 0 )
                 float _FlowStrength;
-                float4 _Color;
             CBUFFER_END
 
             struct Attributes
@@ -66,13 +75,8 @@ Shader "ATGrassCloud/WindShader"
             Varyings vert(Attributes IN)
             {
                 Varyings OUT;
-                // VertexPositionInputs positionInputs = GetVertexPositionInputs(IN.positionOS.xyz);
-                // OUT.positionCS = positionInputs.positionCS;
                 OUT.positionCS = TransformObjectToHClip(IN.positionOS.xyz);
-
                 OUT.uv = TRANSFORM_TEX(IN.uv, _MainTex);
-                // OUT.posWorld = positionInputs.positionWS;
-
                 OUT.posWorldXZ = wind_UV2PosXZ(IN.uv, _WindPositionParams);
 
                 return OUT;
@@ -84,15 +88,34 @@ Shader "ATGrassCloud/WindShader"
                 float2 uv = IN.uv;
                 float2 posWorldXZ = IN.posWorldXZ;
 
+            #ifdef SIMPLEX_NOISE_WIND
+
+                return half4(WindEncode(windNoiseSimple(
+                    posWorldXZ,
+                     _WindScale, 
+                     _WindSpeed,
+                      _WindDir)), 0 , 1.0);
+            #endif
+            #ifdef DISTORT_SIMPLEX_NOISE_WIND
+
                 return half4( WindEncode(
                     windNoise(
                         posWorldXZ,
                         _WindScale,
+                        _NoiseScale,
                         _FlowStrength, 
                         _NoiseSpeed, 
+                        _NoiseDir,
                         _WindSpeed, 
-                        normalize(_WindDir) )) 
-                        , 0 , 1.0);   
+                        _WindDir )) , 0 , 1.0);
+            #endif
+            
+            #ifdef CURL_NOISE_WIND
+
+                return half4(0, 0, 0, 1.0);
+            #endif
+                return half4(0, 0, 0, 1.0);
+
 
 
                 // float2 uv = IN.uv;

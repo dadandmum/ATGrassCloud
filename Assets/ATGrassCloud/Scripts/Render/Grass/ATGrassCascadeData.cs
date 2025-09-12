@@ -105,10 +105,12 @@ namespace ATGrassCloud
 
         [BoxGroup("Settings")]
         [InfoBox("In Milion")]
+        [Min(0.01f)]
         public float maxInstanceCount = 1.0f;
         public int GetMaxInstanceCount()
         {
-            return (int)(maxInstanceCount * 1000000);
+            return Mathf.Max( 1 , (int)(maxInstanceCount * 1000000));
+
         }
         [BoxGroup("Settings")]
         [Range(1, 8)]

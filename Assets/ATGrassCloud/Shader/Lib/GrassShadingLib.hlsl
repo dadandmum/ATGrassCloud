@@ -1,4 +1,5 @@
 ﻿
+         
 // #define SHADER_TIP_SPECULAR 1
 #define SHADER_PBR 1
 
@@ -12,8 +13,6 @@ float3 grass_ModelNormal(
 {
     float3 forward = float3( 0,0,1.0f);
     float3 blendOffset = float3(1.0,0,0) * normalBlend * positionModel.x * 50.0 ;
-
-
     return normalize(forward + blendOffset);
 }
 
@@ -201,10 +200,10 @@ float3 grass_Shading(
     result += ambient;
 
     Light mainLight = GetMainLight(TransformWorldToShadowCoord(positionWS));
-#ifdef SHADER_TIP_SPECULAR
+#ifdef _SHADER_TIP_SPECULAR
     result += ShadeGrassBlade_TipSpecular(mainLight, normalWS, viewWS, albedo, specularMask, positionModel.y);
 #endif
-#ifdef SHADER_PBR
+#ifdef _SHADER_PBR
     result += ShadeGrassBlade_PBR(mainLight, normalWS, viewWS, albedo, metallic, smoothness, positionModel.y);
 #endif
     
@@ -213,13 +212,14 @@ float3 grass_Shading(
     {
         Light light = GetAdditionalLight(i, positionWS);
 
-#ifdef SHADER_TIP_SPECULAR
+#ifdef _SHADER_TIP_SPECULAR
         result += ShadeGrassBlade_TipSpecular(light, normalWS, viewWS, albedo, specularMask, positionModel.y);
 #endif
-#ifdef SHADER_PBR
+#ifdef _SHADER_PBR
         result += ShadeGrassBlade_PBR(light, normalWS, viewWS, albedo, metallic, smoothness, positionModel.y);
 #endif
     }
     
     return result;
 }
+

@@ -21,4 +21,5 @@ MonoBehaviour:
   updateMaterial: {fileID: 2100000, guid: 3c5701963ddbab6499a0f18dafcdb325, type: 2}
   syncMaterial: 1
   enableDebug: 0
+  type: 0
   cascadeTexSize: 2

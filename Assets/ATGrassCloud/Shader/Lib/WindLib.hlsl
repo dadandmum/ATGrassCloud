@@ -1,3 +1,5 @@
+#ifndef __WIND_LIB_HLSL__
+#define __WIND_LIB_HLSL__
 
 TEXTURE2D(_WindResultTex);
 SAMPLER(sampler_WindResultTex);
@@ -56,11 +58,22 @@ float2 curlNoise(float2 p)
     return float2(-grad.y, grad.x);
 }
 
-
-half2 windNoise(float2 worldPosXZ , float windScale, float flow,  float noiseSpeed , float windSpeed, float2 windDir )
+half2 windNoiseSimple(float2 worldPosXZ , float windScale, float windSpeed, float2 windDir )
 {
-    float2 wind = curlNoise(( worldPosXZ + windDir * windSpeed * _Time.y) * windScale);
+    float2 wind = curlNoise(( worldPosXZ + normalize( windDir) * windSpeed * _Time.y) * windScale );
+    
+    wind *= 10.0;
+    return wind;
+}
 
+half2 windNoise(float2 worldPosXZ , float windScale, float noiseScale, float flowStrength,  float noiseSpeed , float2 noiseDir, float windSpeed, float2 windDir )
+{
+    float2 noiseUV = (worldPosXZ  + noiseSpeed * _Time.y * normalize(noiseDir) ) * windScale * noiseScale + 5.17;
+    float2 flow = curlNoise(noiseUV) * flowStrength;
+
+    float2 wind = curlNoise(( worldPosXZ + normalize( windDir) * windSpeed * _Time.y) * windScale  + flow );
+
+    wind *= 10.0;
     return wind;
 
 }
@@ -94,3 +107,6 @@ half2 GetWind( float2 worldPosXZ , float4 windPositionParams )
 
     return WindDecode(windEncode);
 }
+
+
+#endif

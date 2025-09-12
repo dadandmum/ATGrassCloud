@@ -1,4 +1,7 @@
-﻿
+﻿#ifndef __GRASS_GEOMETRY_LIB_HLSL__
+#define __GRASS_GEOMETRY_LIB_HLSL__
+
+
 float QuadraticLagrange(float t, float t0, float v0, float t1, float v1, float t2, float v2)
 {
     return v0 * (t - t1) * (t - t2) / ((t0 - t1) * (t0 - t2)) +
@@ -152,3 +155,6 @@ float3 grass_ApplyWindToUp( float3 upDir , float2 windXZ , float windStrength, u
 
 
 }
+
+
+#endif

@@ -1,13 +1,23 @@
 using System.Collections;
 using System.Collections.Generic;
+using JetBrains.Annotations;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace ATGrassCloud
 {
+
+
     [CreateAssetMenu(fileName = "WindData", menuName = "ATGrassCloud/WindData")]
     public class WindData : ScriptableObject
     {
+        public enum WindType
+        {
+            Auto,
+            SimplexNoise,
+            DistortSimplexNoise,
+            CurlNoise,
+        }
         public Texture2D windMap0;
         public Vector3 windDirection = Vector3.zero;
         public float windSpeed = 0.0f;
@@ -26,6 +36,9 @@ namespace ATGrassCloud
 
         public bool syncMaterial = false;
         public bool enableDebug = false;
+
+        public WindType type = WindType.SimplexNoise;
+
 
 
         [BoxGroup("Settings")]
@@ -48,5 +61,26 @@ namespace ATGrassCloud
                     return 1024;
             }
         }
+
+        public void SetMaterialByType(Material mat )
+        {
+            switch (type)
+            {
+                case WindType.SimplexNoise:
+                    mat.EnableKeyword("SIMPLEX_NOISE_WIND");
+                    break;
+                case WindType.DistortSimplexNoise:
+                    mat.EnableKeyword("DISTORT_SIMPLEX_NOISE_WIND");
+                    break;
+                case WindType.CurlNoise:
+                    mat.EnableKeyword("CURL_NOISE_WIND");
+                    break;
+                case WindType.Auto:
+                    break;
+
+            }
+        }
+
+
     }
 }

@@ -34,6 +34,9 @@ namespace ATGrassCloud
             if ( data.updateMaterial != null )
             {
                 m_UpdateMaterial = new Material( data.updateMaterial);
+                m_UpdateMaterial.CopyPropertiesFromMaterial(data.updateMaterial);
+                data.SetMaterialByType(m_UpdateMaterial);
+
             }
             this.data = data;
 
@@ -94,6 +97,7 @@ namespace ATGrassCloud
                 if ( data.syncMaterial )
                 {
                     m_UpdateMaterial.CopyPropertiesFromMaterial(data.updateMaterial);
+                    data.SetMaterialByType(m_UpdateMaterial);
                 }
                 cmd.SetGlobalVector("_WindPositionParams", GetWindPositionParams());
                 // 使用 Blit 将 current -> next，通过材质更新风场
