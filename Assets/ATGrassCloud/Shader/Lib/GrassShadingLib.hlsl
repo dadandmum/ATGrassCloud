@@ -1,7 +1,7 @@
 ﻿
          
-// #define SHADER_TIP_SPECULAR 1
-#define SHADER_PBR 1
+// #define _SHADER_TIP_SPECULAR 1
+#define _SHADER_PBR 1
 
 // blend the grass normal according to the positionModel.x
 // suppose the model is flatten on xy plane ( z == 0 !)
