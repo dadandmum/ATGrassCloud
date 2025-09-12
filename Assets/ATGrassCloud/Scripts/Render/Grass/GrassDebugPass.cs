@@ -42,15 +42,15 @@ namespace ATGrassCloud
 
             using (new ProfilingScope(cmd, new ProfilingSampler("Grass Debug")))
             {
+                
+                var cascade = grassPass.GetCascade(debugData.debugCascade);
+
+                if (debugData.isShowHeightMap)
                 {
-                    var cascade = grassPass.GetCascade(debugData.debugCascade);
-
-                    if (debugData.isShowHeightMap)
-                    {
-                        cmd.Blit(cascade.GetHeightRT(), renderingData.cameraData.renderer.cameraColorTargetHandle);
-                    }
+                    cmd.Blit(cascade.GetHeightRT(), renderingData.cameraData.renderer.cameraColorTargetHandle);
                 }
-
+                
+                
 
             }
             context.ExecuteCommandBuffer(cmd);

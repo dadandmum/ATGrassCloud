@@ -17,7 +17,8 @@ MonoBehaviour:
     hdrDebugViewPS: {fileID: 4800000, guid: 573620ae32aec764abd4d728906d2587, type: 3}
   m_RendererFeatures:
   - {fileID: 2500325734344291707}
-  m_RendererFeatureMap: 7bf55b1202f1b222
+  - {fileID: 4189123199748170499}
+  m_RendererFeatureMap: 7bf55b1202f1b222036356f15ac1223a
   m_UseNativeRenderPass: 0
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
   xrSystemData: {fileID: 11400000, guid: 60e1133243b97e347b653163a8c01b64, type: 2}
@@ -76,3 +77,19 @@ MonoBehaviour:
     enableDebug: 0
     debugCascade: 0
     isShowHeightMap: 1
+--- !u!114 &4189123199748170499
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 02a637e3987163241bc93337abae36d3, type: 3}
+  m_Name: ATWindRenderFeature
+  m_EditorClassIdentifier: 
+  m_Active: 1
+  settings:
+    Event: 200
+    windData: {fileID: 11400000, guid: 9091fa1ccbbbceb40918ab4243cbef04, type: 2}

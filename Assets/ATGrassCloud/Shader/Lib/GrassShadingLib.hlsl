@@ -1,4 +1,6 @@
 ﻿
+// #define SHADER_TIP_SPECULAR 1
+#define SHADER_PBR 1
 
 // blend the grass normal according to the positionModel.x
 // suppose the model is flatten on xy plane ( z == 0 !)
@@ -62,7 +64,7 @@ float3 grass_AmbientDiffuse(
 }
 
 
-half3 ApplyGrassLightingWithTipSpecular(Light light, half3 N, half3 V, half3 albedo, half specularMask, half positionY)
+half3 ShadeGrassBlade_TipSpecular(Light light, half3 N, half3 V, half3 albedo, half specularMask, half positionY)
 {
     half3 H = normalize(light.direction + V);
 
@@ -76,7 +78,7 @@ half3 ApplyGrassLightingWithTipSpecular(Light light, half3 N, half3 V, half3 alb
 
     directSpecular *= positionY * 0.12;
 
-    half3 lighting = light.color * (light.shadowAttenuation * light.distanceAttenuation);
+    half3 lighting = light.color * light.shadowAttenuation * light.distanceAttenuation;
     half3 result = (albedo * directDiffuse + directSpecular * (1-specularMask)) * lighting;
 
 
@@ -180,6 +182,7 @@ half3 ShadeGrassBlade_PBR(
     half3 enhancedSpecular = F * tipGloss * smoothness * lighting;
     color += enhancedSpecular * 0.5h; // Add subtle enhancement
 
+
     return color;
 }
 
@@ -198,6 +201,25 @@ float3 grass_Shading(
     result += ambient;
 
     Light mainLight = GetMainLight(TransformWorldToShadowCoord(positionWS));
+#ifdef SHADER_TIP_SPECULAR
+    result += ShadeGrassBlade_TipSpecular(mainLight, normalWS, viewWS, albedo, specularMask, positionModel.y);
+#endif
+#ifdef SHADER_PBR
     result += ShadeGrassBlade_PBR(mainLight, normalWS, viewWS, albedo, metallic, smoothness, positionModel.y);
+#endif
+    
+    int additionalLightsCount = 4;
+    for (int i = 0; i < additionalLightsCount; ++i)
+    {
+        Light light = GetAdditionalLight(i, positionWS);
+
+#ifdef SHADER_TIP_SPECULAR
+        result += ShadeGrassBlade_TipSpecular(light, normalWS, viewWS, albedo, specularMask, positionModel.y);
+#endif
+#ifdef SHADER_PBR
+        result += ShadeGrassBlade_PBR(light, normalWS, viewWS, albedo, metallic, smoothness, positionModel.y);
+#endif
+    }
+    
     return result;
 }

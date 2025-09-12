@@ -140,7 +140,7 @@ namespace ATGrassCloud
 
         public void DrawHeightMap(ScriptableRenderContext context, ref RenderingData renderingData , CommandBuffer cmd , bool resetRenderTarget = true )
         {
-            if ( !data.isRender )
+            if ( !data.isRender || !heightMapMat)
             {
                 return;
             }
@@ -287,6 +287,7 @@ namespace ATGrassCloud
             grassMat.SetBuffer("_GrassData", grassDataBuffer);
             grassMat.SetVector("_CascadeRange", data.GetRangeData());
 
+            cmd.SetGlobalVector("unity_LightData", new Vector4(1.0f,4.0f,1.0f,0));
             cmd.DrawMeshInstancedIndirect(
                 GetGrassMeshCache(),
                 0 ,

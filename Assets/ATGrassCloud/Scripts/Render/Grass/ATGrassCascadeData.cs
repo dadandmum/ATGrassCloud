@@ -84,21 +84,6 @@ namespace ATGrassCloud
 
         [BoxGroup("Settings")]
         public ATCascadeTexSize cascadeTexSize = ATCascadeTexSize.Default;
-
-        [BoxGroup("Settings")]
-        [InfoBox("In Milion")]
-        public float maxInstanceCount = 1.0f;
-        public int GetMaxInstanceCount()
-        {
-            return (int)(maxInstanceCount * 1000000);
-        }
-        [BoxGroup("Settings")]
-        [Range(1, 8)]
-        public int instancePerTile = 4;
-
-        [BoxGroup("Settings")]
-        public float TileSize = 0.2f;
-
         public int GetTextureSize()
         {
             switch (cascadeTexSize)
@@ -117,6 +102,21 @@ namespace ATGrassCloud
                     return 1024;
             }
         }
+
+        [BoxGroup("Settings")]
+        [InfoBox("In Milion")]
+        public float maxInstanceCount = 1.0f;
+        public int GetMaxInstanceCount()
+        {
+            return (int)(maxInstanceCount * 1000000);
+        }
+        [BoxGroup("Settings")]
+        [Range(1, 8)]
+        public int instancePerTile = 4;
+
+        [BoxGroup("Settings")]
+        public float TileSize = 0.2f;
+
 
         [BoxGroup("HeightMap")]
         public LayerMask heightMapLayer;

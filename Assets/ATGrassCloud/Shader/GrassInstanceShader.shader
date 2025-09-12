@@ -33,8 +33,9 @@
         _GrassNormalBlend("Grass Normal Blend", Range(-1, 1)) = 0.25
 
         [Header(Wind)][Space]
-        _WindTexture("Wind Texture", 2D) = "white" {}
-        _WindScroll("Wind Scroll", Vector) = (1, 1, 0, 0)
+        // _WindTexture("Wind Texture", 2D) = "white" {}
+        // _WindScroll("Wind Scroll", Vector) = (1, 1, 0, 0)
+        _WindRandomness("Wind Randomness", Range(0, 1)) = 0.25
         _WindStrength("Wind Strength", Float) = 1
 
         [Header(Lighting)][Space]
@@ -70,6 +71,7 @@
             #include "Lib/GrassShadingLib.hlsl"
             #include "Lib/GrassGeometryLib.hlsl"
             #include "Lib/Simplex.hlsl"
+            #include "Lib/WindLib.hlsl"
             
             struct Attributes
             {
@@ -117,6 +119,8 @@
                 float4 _WindTexture_ST;
                 float _WindStrength;
                 float2 _WindScroll;
+                float4 _WindPositionParams;
+                float _WindRandomness;
 
                 half _RandomNormal;
 
@@ -132,11 +136,16 @@
 
             CBUFFER_END
 
-            sampler2D _BaseColorTexture;
-            sampler2D _WindTexture;
+            // sampler2D _BaseColorTexture;
+            TEXTURE2D(_WindTexture);
+            SAMPLER(sampler_WindTexture);
 
-            sampler2D _GrassColorRT;
-            sampler2D _GrassSlopeRT;
+            // sampler2D _GrassColorRT;
+            // sampler2D _GrassSlopeRT;
+
+            
+            // TEXTURE2D(_WindResultTex);
+            // SAMPLER(sampler_WindResultTex);
 
             half3 ApplySingleDirectLight(Light light, half3 N, half3 V, half3 albedo, half mask, half positionY)
             {
@@ -207,8 +216,12 @@
 
 
                 // TODO : add wind 
-
-
+                // float2 windUV = wind_PosXZ2UV(pivot.xz, _WindPositionParams);
+                // float2 wind = SAMPLE_TEXTURE2D(_WindResultTex, sampler_WindResultTex, windUV).xy;
+                // wind = WindDecode(wind);
+                float2 wind = GetWind(pivot.xz, _WindPositionParams);
+                upDirection = grass_ApplyWindToUp(upDirection, wind, _WindStrength, rand , _WindRandomness, positionModel);
+                
                 float3 positionModelWithRot = grass_RecalculateByDirection(
                     upDirection, 
                     faceDirection, 
@@ -236,7 +249,8 @@
                 // shading 
                 float specularMask = 0.0; // TODO : pass by map
                 OUT.color = grass_Shading(albedo, _Smoothness, _Metallic, positionWS, normalWS, viewWS, specularMask, positionModel);
-                
+                // half3 windTex = tex2Dlod(_WindTexture, float4(TRANSFORM_TEX(pivot.xz, _WindTexture) + _WindScroll * _Time.y,0,0));
+
                 // OUT.color = float4(0,positionWS.y * 0.1 + 0.5,0,1);
                 return OUT;
 

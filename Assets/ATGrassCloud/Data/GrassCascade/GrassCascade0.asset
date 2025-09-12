@@ -31,4 +31,4 @@ MonoBehaviour:
   renderType: 0
   ProcedualMeshMaterial: {fileID: 2100000, guid: 3b14d1de8eb6c7c4cbee36508473c8c1, type: 2}
   procedualMeshSegments: 6
-  updateMaterial: 0
+  updateMaterial: 1

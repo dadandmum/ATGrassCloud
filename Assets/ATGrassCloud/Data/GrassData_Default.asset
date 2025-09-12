@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 57c60a8e54b76f044b6ff4f887d6002e, type: 3}
-  m_Name: ATGrassData
+  m_Name: GrassData_Default
   m_EditorClassIdentifier: 
   generateHeightMat: 1
   heightMapMat: {fileID: 2100000, guid: 40382e58bb275a94a91d8afbe6692a53, type: 2}

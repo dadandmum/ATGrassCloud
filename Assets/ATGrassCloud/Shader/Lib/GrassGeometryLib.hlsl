@@ -106,12 +106,13 @@ float3 GetDefaultUpDirection( float3 pivot , uint rand, float randomness, float3
     return normalize(float3(sin(angle) * range , 0 , cos(angle) * range ) + upDir);
 }
 
-float3 GetDefaultFaceDirection( float3 pivot ,int rand, float randomness, float3 cameraPos)
+float3 GetDefaultFaceDirection( float3 pivot , uint rand, float randomness, float3 cameraPos)
 {
     float angle = decodeRandLow(rand) * 6.28318530718;
     float range = decodeRandHigh(rand) * randomness;
 
     float3 direcitonToCamera = normalize( cameraPos - pivot);
+    float3 dirY = abs(direcitonToCamera.y);
     direcitonToCamera.y *= direcitonToCamera.y * 0.5 ;
     // direcitonToCamera.y *= 0;
     direcitonToCamera = normalize(direcitonToCamera);
@@ -120,14 +121,34 @@ float3 GetDefaultFaceDirection( float3 pivot ,int rand, float randomness, float3
     float3 tangentDir = cross( up , direcitonToCamera);
     float3 bitangentDir = cross( direcitonToCamera , tangentDir);
 
-    float3 offset = sin(angle) * range * tangentDir + cos(angle) * range * bitangentDir;
-    return normalize(offset + direcitonToCamera);
+    float offsetRange = lerp( 1.0f , 0.02f , dirY ) * range;
+    float3 offsetNoise = (sin(angle)  * tangentDir + cos(angle)  * bitangentDir) * offsetRange;
+    return normalize(offsetNoise + direcitonToCamera);
 }
 
 float3 grass_RecalculateByDirection( float3 up , float3 forward , float3 positionModel , float droop  )
 {
-    float3 right = -cross(up, forward);
-    float3 newPosition = positionModel.x * right + positionModel.y * up + positionModel.z * forward;
+    float3 newForward = normalize(forward);
+    float3 right = normalize(-cross(up, newForward));
+    float3 newUp = normalize( cross(right, newForward));
+
+    float3 newPosition = positionModel.x * right + positionModel.y * newUp + positionModel.z * newForward;
     newPosition += droop * positionModel.y * positionModel.y * float3( 0 , -1.0 , 0 );
     return newPosition;
+}
+
+
+float3 grass_ApplyWindToUp( float3 upDir , float2 windXZ , float windStrength, uint rand, float windRandomness, float3 positionModel )
+{
+    float3 wind = float3(windXZ.x, 0, windXZ.y);
+    float randAngle = decodeRandLow(rand << 3) * 6.28318530718;
+    wind *= 1.0 + (decodeRandLow(rand << 3) * 2 - 1) * windRandomness;
+
+    wind *= windStrength;
+
+
+    float3 newDir = upDir + wind * positionModel.y;
+    return normalize(newDir);
+
+
 }

@@ -41,7 +41,7 @@ public class ATGrassRenderFeature : ScriptableRendererFeature
         grassOpaquePass = new GrassRenderOpaquePass(grassData, grassDataPass);
         grassOpaquePass.renderPassEvent = drawOpaqueEvent;
         grassDebugPass = new GrassDebugPass(debugData, grassDataPass, grassData);
-        grassDebugPass.renderPassEvent = RenderPassEvent.AfterRenderingPostProcessing;
+        grassDebugPass.renderPassEvent = RenderPassEvent.AfterRendering;
     }
 
     public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)

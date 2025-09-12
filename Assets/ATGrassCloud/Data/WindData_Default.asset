@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17ac265ed8e890f43979c56a94903b61, type: 3}
+  m_Name: WindData_Default
+  m_EditorClassIdentifier: 
+  windMap0: {fileID: 2800000, guid: 460ccb46055a9184db367a44b8aef96e, type: 3}
+  windDirection: {x: 0, y: 0, z: 0}
+  windSpeed: 0
+  windWorldRange: 30
+  windWorldSnap: 5
+  windWorldFade: 10
+  updateMaterial: {fileID: 2100000, guid: 3c5701963ddbab6499a0f18dafcdb325, type: 2}
+  syncMaterial: 1
+  enableDebug: 0
+  cascadeTexSize: 2
