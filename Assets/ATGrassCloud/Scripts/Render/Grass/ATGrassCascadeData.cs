@@ -52,6 +52,8 @@ namespace ATGrassCloud
         [BoxGroup("Range")]
         public float cascadeOutterFade = 1.0f;
 
+    
+
         /// <summary>
         /// Get the range data of the cascade.
         /// </summary>
@@ -126,6 +128,27 @@ namespace ATGrassCloud
         [BoxGroup("HeightMap")]
         public float HeightMapSnapDistance = 10f;
 
+        [BoxGroup("Occlusion")]
+        public bool UseFrustumCulling= true;
+        [BoxGroup("Occlusion")]
+        public float EdgeFrustumCullingOffset = 0.1f;
+        [BoxGroup("Occlusion")]
+        public float NearPlaneOffset = 2.5f;
+
+        [BoxGroup("Occlusion")]
+        public bool UseDepthOcclusionCulling = true;
+
+        [BoxGroup("Occlusion")]
+        public float OccludHeightOffset = 1.5f;
+
+        [BoxGroup("Occlusion")]
+        public bool distanceDensityCulling = true;
+        [ShowIf("distanceDensityCulling")]
+        [BoxGroup("Occlusion")]
+        public float FullDensityDistance = 40f;
+
+
+
         [BoxGroup("Rendering")]
         public ATGrassRenderType renderType = ATGrassRenderType.ProcedualMesh;
 
@@ -141,6 +164,8 @@ namespace ATGrassCloud
         [BoxGroup("Rendering")]
         [ShowIf("renderType", ATGrassRenderType.ProcedualMesh)]
         public bool updateMaterial = false;
+
+
 
 
     }

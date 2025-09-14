@@ -41,8 +41,8 @@
         [Header(Lighting)][Space]
         _RandomNormal("Random Normal", Range(0, 1)) = 0.1
 
-        // [Toggle(_SHADER_TIP_SPECULAR)]_ShaderTipSpecular("Shader Tip Specular", Float) = 0
-        // [Toggle(_SHADER_PBR)]_ShaderPBR("Shader PBR", Float) = 1
+        [Toggle(_SHADER_PBR)]_ShaderPBR("Shader PBR", Float) = 1
+        [Toggle(_SHADER_TIP_SPECULAR)]_ShaderTipSpecular("Shader Tip Specular", Float) = 0
     }
 
     SubShader
@@ -65,13 +65,12 @@
             #pragma multi_compile _ _ADDITIONAL_LIGHT_SHADOWS
             #pragma multi_compile _ _SHADOWS_SOFT
             #pragma multi_compile _ _PROCEDURAL_MESH
-            // #pragma multi_compile _ _SHADER_TIP_SPECULAR SHADER_PBR
+            #pragma multi_compile _ _SHADER_TIP_SPECULAR _SHADER_PBR
 
             #pragma multi_compile_fog
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
-            #include "Lib/GrassShadingLib.hlsl"
             #include "Lib/GrassLib.hlsl"
             #include "Lib/Simplex.hlsl"
             #include "Lib/WindLib.hlsl"

@@ -1,7 +1,10 @@
-﻿
+﻿#ifndef __GRASS_SHADING_LIB_HLSL__
+#define __GRASS_SHADING_LIB_HLSL__
+
          
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 // #define _SHADER_TIP_SPECULAR 1
-#define _SHADER_PBR 1
+// #define _SHADER_PBR 1
 
 // blend the grass normal according to the positionModel.x
 // suppose the model is flatten on xy plane ( z == 0 !)
@@ -223,3 +226,4 @@ float3 grass_Shading(
     return result;
 }
 
+#endif

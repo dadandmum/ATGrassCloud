@@ -15,11 +15,11 @@ MonoBehaviour:
   isRender: 1
   cascadeName: Cascade0
   cascadeLevel: 0
-  cascadeRange: {x: 10, y: 30}
-  cascadeInnerRange: 10
+  cascadeRange: {x: 5, y: 30}
+  cascadeInnerRange: 5
   cascadeInnerFade: 5
   cascadeOutterRange: 30
-  cascadeOutterFade: 30
+  cascadeOutterFade: 15
   cascadeTexSize: 3
   maxInstanceCount: 1
   instancePerTile: 4
@@ -28,6 +28,13 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 768
   HeightMapSnapDistance: 10
+  UseFrustumCulling: 1
+  EdgeFrustumCullingOffset: 0.1
+  NearPlaneOffset: 2.5
+  UseDepthOcclusionCulling: 1
+  OccludHeightOffset: 1.5
+  distanceDensityCulling: 1
+  FullDensityDistance: 40
   renderType: 0
   ProcedualMeshMaterial: {fileID: 2100000, guid: 3b14d1de8eb6c7c4cbee36508473c8c1, type: 2}
   procedualMeshSegments: 6

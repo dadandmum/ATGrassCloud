@@ -16,9 +16,10 @@ MonoBehaviour:
     debugReplacementPS: {fileID: 4800000, guid: cf852408f2e174538bcd9b7fda1c5ae7, type: 3}
     hdrDebugViewPS: {fileID: 4800000, guid: 573620ae32aec764abd4d728906d2587, type: 3}
   m_RendererFeatures:
+  - {fileID: 500170998908444178}
   - {fileID: 2500325734344291707}
   - {fileID: 4189123199748170499}
-  m_RendererFeatureMap: 7bf55b1202f1b222036356f15ac1223a
+  m_RendererFeatureMap: 12dee39cdff6f0067bf55b1202f1b222036356f15ac1223a
   m_UseNativeRenderPass: 0
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
   xrSystemData: {fileID: 11400000, guid: 60e1133243b97e347b653163a8c01b64, type: 2}
@@ -51,12 +52,34 @@ MonoBehaviour:
     passOperation: 2
     failOperation: 0
     zFailOperation: 0
-  m_ShadowTransparentReceive: 1
+  m_ShadowTransparentReceive: 0
   m_RenderingMode: 0
-  m_DepthPrimingMode: 0
-  m_CopyDepthMode: 1
+  m_DepthPrimingMode: 2
+  m_CopyDepthMode: 2
   m_AccurateGbufferNormals: 0
   m_IntermediateTextureMode: 1
+--- !u!114 &500170998908444178
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4571883eda65cd4f86aa8e23e9c7402, type: 3}
+  m_Name: ATHierachyZRenderFeature
+  m_EditorClassIdentifier: 
+  m_Active: 1
+  settings:
+    Event: 200
+    stopHiZlevel: 8
+    useDepthPrePass: 0
+    useCustomDepthPass: 1
+    hiZShader: {fileID: 4800000, guid: 76f100f4c8d0753479b15e3ceb4c36a0, type: 3}
+    layerMask:
+      serializedVersion: 2
+      m_Bits: 4294967295
 --- !u!114 &2500325734344291707
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -91,5 +114,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Active: 1
   settings:
-    Event: 200
+    Event: 150
     windData: {fileID: 11400000, guid: 9091fa1ccbbbceb40918ab4243cbef04, type: 2}

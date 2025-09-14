@@ -267,7 +267,7 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0.3
-  far clip plane: 200
+  far clip plane: 300
   field of view: 60
   orthographic: 0
   orthographic size: 5
@@ -648,7 +648,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0.28906816, y: -0.01984982, z: 0.037368488, w: 0.956373}
   m_LocalPosition: {x: 12.2, y: 8.07, z: 44.4}
-  m_LocalScale: {x: 13.635134, y: 13.635134, z: 13.635134}
+  m_LocalScale: {x: 15.0818205, y: 15.0818205, z: 15.0818205}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}

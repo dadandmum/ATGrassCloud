@@ -2,14 +2,12 @@
 
 #include "Lib/HeightMapLib.hlsl"
 #include "Lib/GrassLib.hlsl"
-// #include "Lib/Simplex.compute"
-
+#include "Lib/DepthZLib.hlsl"
 
 float _TileSize;
 int _InstancePerTile;
 float _DrawDistance;
 float _SnapDistance;
-float _FullDensityDistance;
 float4 _HeightMapData; // (centerPos.x , centerPos.y , size , 1.0f / size )
 
 int2 _TileStartIndex;
@@ -18,7 +16,17 @@ float3 _CameraPosition;
 float2 _CenterPosition;
 float3 _BoundsMin;
 float3 _BoundsMax;
-float4 _Range; // ( InnerRange , OutterRange , 1.0 / innerRangeFade, 1.0 /  OutterRangeFade)
+float4 _CascadeRange; // ( InnerRange , OutterRange , 1.0 / innerRangeFade, 1.0 /  OutterRangeFade)
+float _OccludHeightOffset;
+float _EdgeFrustumCullingOffset;
+float _NearPlaneOffset; 
+uint _UseDistanceDensityCulling;
+uint _UseDepthOcclusionCulling;
+uint _UseFrustumCulling;
+
+
+float _FullDensityDistance;
+
 
 float4x4 _ViewProjectMatrix;
 
@@ -28,6 +36,8 @@ SamplerState sampler_Point_Clamp;
 //Generated and passedby the Custom Renderer Feature
 Texture2D<float2> _HeightMapRT;
 Texture2D<float4> _GrassMaskMapRT;
+
+
 //--------------------------------------------------
 
 AppendStructuredBuffer<float3> _GrassPositions;
@@ -75,6 +85,26 @@ uint FrustumCulling(float4 absPosCS )
     }
 }
 
+
+uint FrustumCulling2(float4 clippingPos)
+{
+    // The size of clipping space is about [-clippingPos.w, clippingPos.w]
+    // Only need to check if x y z values are inside the range
+    
+    bool isOutsideFarNearPlane = clippingPos.z > clippingPos.w || clippingPos.z < -clippingPos.w;
+    bool isOutsideLeftRightPlane = clippingPos.x < -clippingPos.w + _EdgeFrustumCullingOffset || clippingPos.x > clippingPos.w - _EdgeFrustumCullingOffset;
+    bool isOutsideBottomTopPlane = clippingPos.y < -clippingPos.w + -_NearPlaneOffset || clippingPos.y > clippingPos.w;
+
+    if (isOutsideFarNearPlane || isOutsideLeftRightPlane || isOutsideBottomTopPlane)
+    {
+        return 0; // The point is outside the frustum
+    }
+    else
+    {
+        return 1; // The point is inside the frustum
+    }
+}
+
 float InOutEaseCubic( float x )
 {
     return x * x * ( 3.0 - 2.0 * x );
@@ -88,11 +118,11 @@ uint DistanceCulling(float3 worldPos , int2 tileIndex, int index )
     // Cull if distance exeeds the threshold
     
     float d = distance(worldPos, _CameraPosition);
-    float innerRange = _Range.x;
-    float outterRange = _Range.y;
-    float innerRangeFadeInv = _Range.z;
+    float innerRange = _CascadeRange.x;
+    float outterRange = _CascadeRange.y;
+    float innerRangeFadeInv = _CascadeRange.z;
     float innerRangeX = InOutEaseCubic(saturate( 1.0 - ( innerRange - d ) * innerRangeFadeInv));
-    float outterRangeFade = _Range.w;
+    float outterRangeFade = _CascadeRange.w;
     float outterRangeX = InOutEaseCubic(saturate( 1.0 - ( d - outterRange ) * outterRangeFade));
     
     if ( d <= outterRange && d >= innerRange)
@@ -101,7 +131,6 @@ uint DistanceCulling(float3 worldPos , int2 tileIndex, int index )
     } 
     else if ( d < innerRange && innerRangeX > 0 )
     {
-        
         float rand = grc_random(tileIndex.x * 5542 + tileIndex.y * 29 + index * 8);
         return rand < innerRangeX;
     }
@@ -116,6 +145,53 @@ uint DistanceCulling(float3 worldPos , int2 tileIndex, int index )
     }
 }
 
+uint DistanceDensityCulling( float3 worldPos , int2 tileIndex, int index )
+{
+    float disToCam = distance(worldPos, _CameraPosition);
+    uint d = uint(floor(disToCam / _FullDensityDistance));
+    uint disLevel = 1 << d;//This is just another way of writting d = pow(2, d)
+    uint insideDensityLevel = grc_murmurHash3(tileIndex.x + tileIndex.y * 7954) % disLevel == 0;
+    return insideDensityLevel;
+
+}
+
+
+uint OcclusionCulling(float4 posCS )
+{
+    float depthGrass = depth_GetDepthByPosCS(posCS);
+    float depthTex = depth_GetDepthFromDepthTex(posCS);
+
+    return ( depthGrass > depthTex ) ? 1 : 0 ;
+ 
+    // return depthGrass < 0.03 ? 1 : 0 ;
+
+    // // Transfer grass position from clipping to NDC
+    // float3 ndcPosition = posCS.xyz / posCS.w;
+    
+    // // Transfer to uv coordinate
+    // float2 uvPosition = float2(ndcPosition.x, ndcPosition.y) * 0.5f + 0.5f;
+    
+    // // Use maximum mipmap level
+    // uint mipmapLevel = log2(_DepthTexSize) - 1;
+    // uint size = _DepthTexSize / (1 << mipmapLevel);
+    
+    // // Calculate the pixel position
+    // uint2 pixelPosition = uint2(clamp(uvPosition.x * size, 0, size - 1), clamp(uvPosition.y * size, 0, size - 1));
+    
+    // // Sample the depth in depth texture
+    // float depthInTexture = _DepthTex.SampleLevel(sampler_DepthTex, uvPosition, 0).r;
+
+    // float depth = ndcPosition.z;
+    
+    // if (depth > depthInTexture)
+    // {
+    //     return 1;
+    // }
+    // else
+    // {
+    //     return 0;
+    // }
+}
 
 [numthreads(8, 8, 1)]
 void CS_CalculatePosition(uint3 id : SV_DispatchThreadID)
@@ -138,7 +214,7 @@ void CS_CalculatePosition(uint3 id : SV_DispatchThreadID)
 
         float2 uv = (positionIndexXZ - _HeightMapData.xy ) * _HeightMapData.w ;
         uv = uv * 0.5 + 0.5;
-
+ 
         float2 heightMap = _HeightMapRT.SampleLevel(sampler_Linear_Clamp, uv, 0).rg; //Sampling the HeightMap Texture (Red Channel: Height, Green Channel: Area where grass should be spawned)
         
         float positionY = DecodeHeight(heightMap.r, float2(_BoundsMin.y, _BoundsMax.y));
@@ -146,14 +222,24 @@ void CS_CalculatePosition(uint3 id : SV_DispatchThreadID)
 	
         float3 positionWS = float3(positionIndexXZ.x, positionY, positionIndexXZ.y);
 
-
-        float4 positionCS = abs(mul(_ViewProjectMatrix, float4(positionWS, 1.0)));
-
+        float4 positionCS = mul(_ViewProjectMatrix, float4(positionWS, 1.0));
 
         uint distanceCulling = DistanceCulling(positionWS, currentIndex, index);
-        uint frustumCulling = FrustumCulling(positionCS);
- 
-        if ( distanceCulling > 0 && frustumCulling > 0)
+        // uint frustumCulling = FrustumCulling( abs(positionCS));
+        uint frustumCulling =  _UseFrustumCulling? FrustumCulling2( positionCS) : 1;
+
+
+        uint occlusionCulling0 = OcclusionCulling(positionCS);
+        float4 positionCSOffset = mul(_ViewProjectMatrix, float4(positionWS + float3(0, _OccludHeightOffset, 0), 1.0));
+        uint heightOcclusionTest = OcclusionCulling(positionCSOffset);
+        uint occlusionCulling =  _UseDepthOcclusionCulling? ( occlusionCulling0 || heightOcclusionTest) : 1;
+
+
+        uint distanceDensityCulling = 1; 
+        
+        distanceDensityCulling = _UseDistanceDensityCulling? DistanceDensityCulling(positionWS, currentIndex, index) : 1 ;
+
+        if ( distanceCulling  && frustumCulling  && occlusionCulling  && distanceDensityCulling )
         {
             GrassData data;
             data.position = positionWS;

@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Drawing.Drawing2D;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -112,11 +113,24 @@ namespace ATGrassCloud
         public void Init()
         {
             int textureSize = data.GetTextureSize();
-            RenderingUtils.ReAllocateIfNeeded(ref heightRT, new RenderTextureDescriptor(textureSize, textureSize, RenderTextureFormat.RGFloat, 0), FilterMode.Bilinear);
-            RenderingUtils.ReAllocateIfNeeded(ref heightDepthRT, new RenderTextureDescriptor(textureSize, textureSize, RenderTextureFormat.RFloat, 32), FilterMode.Bilinear);
-            RenderingUtils.ReAllocateIfNeeded(ref maskRT, new RenderTextureDescriptor(textureSize, textureSize, RenderTextureFormat.ARGBFloat, 0), FilterMode.Bilinear);
-            RenderingUtils.ReAllocateIfNeeded(ref colorRT, new RenderTextureDescriptor(textureSize, textureSize, RenderTextureFormat.ARGBFloat, 0), FilterMode.Bilinear);
-            RenderingUtils.ReAllocateIfNeeded(ref slopeRT, new RenderTextureDescriptor(textureSize, textureSize, RenderTextureFormat.ARGBFloat, 0), FilterMode.Bilinear);
+
+            var desc = new RenderTextureDescriptor(
+                textureSize, 
+                textureSize, 
+                RenderTextureFormat.RGFloat,
+                0
+                );
+            desc.msaaSamples = 1;
+
+            var depthDesc = desc;
+            depthDesc.depthBufferBits = 32;
+            depthDesc.colorFormat = RenderTextureFormat.RFloat;
+
+            RenderingUtils.ReAllocateIfNeeded(ref heightRT, desc, FilterMode.Bilinear);
+            RenderingUtils.ReAllocateIfNeeded(ref heightDepthRT, depthDesc, FilterMode.Bilinear);
+            RenderingUtils.ReAllocateIfNeeded(ref maskRT, desc, FilterMode.Bilinear);
+            RenderingUtils.ReAllocateIfNeeded(ref colorRT, desc, FilterMode.Bilinear);
+            RenderingUtils.ReAllocateIfNeeded(ref slopeRT, desc, FilterMode.Bilinear);
 
             // pass.ConfigureTarget(heightRT, heightDepthRT);
             // pass.ConfigureClear(ClearFlag.All, Color.black);
@@ -177,18 +191,20 @@ namespace ATGrassCloud
             if ( resetRenderTarget)
             {
                 cmd.SetViewProjectionMatrices(renderingData.cameraData.camera.worldToCameraMatrix, renderingData.cameraData.camera.projectionMatrix);
-                cmd.SetRenderTarget(BuiltinRenderTextureType.CameraTarget);
+                cmd.SetRenderTarget(BuiltinRenderTextureType.CameraTarget,BuiltinRenderTextureType.Depth);
+                
             }
 
         }
 
         public void CalculateGrassData(ScriptableRenderContext context, ref RenderingData renderingData , CommandBuffer cmd )
         {
-
             if ( !data.isRender )
             {
                 return;
             }
+
+
             using (new ProfilingScope(cmd, new ProfilingSampler("Calculate Grass Data " + data.cascadeName)))
             {
                 var camera = Camera.main;
@@ -197,6 +213,9 @@ namespace ATGrassCloud
                 var maxBufferCount = data.GetMaxInstanceCount();
                 var centerPos = GrassPrePass.GetCenterPosition(camera , data.GetSnapDistance());
                 var heightMapData = GrassPrePass.GetDrawTopDownTextureData(cameraBounds , data.GetMaxDistance() , data.GetSnapDistance());
+                
+                Matrix4x4 projectionMatrix = GL.GetGPUProjectionMatrix( camera.projectionMatrix , false);
+                Matrix4x4 viewProjectionMatrix = projectionMatrix * camera.worldToCameraMatrix;
 
 
                 Vector2Int tileNumber = new Vector2Int(Mathf.CeilToInt(cameraBounds.size.x / tileSize), Mathf.CeilToInt(cameraBounds.size.z / tileSize));
@@ -206,8 +225,9 @@ namespace ATGrassCloud
                 // grassDataBuffer.SetData(grassDataInit);
                 cmd.SetBufferCounterValue(grassDataBuffer, 0);
 
-                cmd.SetComputeMatrixParam(computeShader, "_ViewProjectMatrix", camera.projectionMatrix * camera.worldToCameraMatrix);
-                cmd.SetComputeVectorParam(computeShader, "_Range", data.GetRangeData() );
+                // set data 
+                cmd.SetComputeMatrixParam(computeShader, "_ViewProjectMatrix", viewProjectionMatrix);
+                cmd.SetComputeVectorParam(computeShader, "_CascadeRange", data.GetRangeData() );
                 cmd.SetComputeIntParam(computeShader, "_InstancePerTile", data.instancePerTile);
                 cmd.SetComputeVectorParam(computeShader, "_BoundsMin", cameraBounds.min);
                 cmd.SetComputeVectorParam(computeShader, "_BoundsMax", cameraBounds.max);
@@ -219,7 +239,15 @@ namespace ATGrassCloud
                 cmd.SetComputeFloatParam(computeShader, "_SnapDistance", data.GetSnapDistance());
                 cmd.SetComputeVectorParam(computeShader, "_TileNumer", new Vector4(tileNumber.x, tileNumber.y, 0, 0));
                 cmd.SetComputeVectorParam(computeShader, "_TileStartIndex", new Vector4(tileStartIndex.x, tileStartIndex.y, 0, 0));
-                 
+                cmd.SetComputeFloatParam(computeShader, "_OccludHeightOffset", data.OccludHeightOffset);
+                cmd.SetComputeFloatParam(computeShader, "_EdgeFrustumCullingOffset", data.EdgeFrustumCullingOffset);
+                cmd.SetComputeFloatParam(computeShader, "_NearPlaneOffset", data.NearPlaneOffset);
+                cmd.SetComputeIntParam(computeShader, "_UseFrustumCulling", data.UseFrustumCulling ? 1 : 0);
+                cmd.SetComputeIntParam(computeShader, "_UseDepthOcclusionCulling", data.UseDepthOcclusionCulling ? 1 : 0);
+                cmd.SetComputeIntParam(computeShader, "_UseDistanceDensityCulling", data.distanceDensityCulling ? 1 : 0);
+                cmd.SetComputeFloatParam(computeShader, "_FullDensityDistance", data.FullDensityDistance);
+
+                // set texture 
                 cmd.SetComputeTextureParam(computeShader, calculatePositionKernel, "_HeightMapRT", heightRT);
                 cmd.SetComputeTextureParam(computeShader, calculatePositionKernel, "_GrassMaskMapRT", maskRT);
                 

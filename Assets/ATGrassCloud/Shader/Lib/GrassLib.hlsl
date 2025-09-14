@@ -33,6 +33,7 @@ float grass_Remap(float In, float2 InMinMax, float2 OutMinMax)
 }
 
 #include "GrassGeometryLib.hlsl"
+#include "GrassShadingLib.hlsl"
 
 
 #endif

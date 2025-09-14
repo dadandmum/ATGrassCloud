@@ -15,19 +15,26 @@ MonoBehaviour:
   isRender: 1
   cascadeName: Cascade2
   cascadeLevel: 2
-  cascadeRange: {x: 100, y: 500}
+  cascadeRange: {x: 100, y: 350}
   cascadeInnerRange: 100
-  cascadeInnerFade: 30
-  cascadeOutterRange: 500
+  cascadeInnerFade: 25
+  cascadeOutterRange: 350
   cascadeOutterFade: 100
   cascadeTexSize: 1
   maxInstanceCount: 1
-  instancePerTile: 1
-  TileSize: 0.8
+  instancePerTile: 4
+  TileSize: 0.25
   heightMapLayer:
     serializedVersion: 2
     m_Bits: 768
   HeightMapSnapDistance: 20
+  UseFrustumCulling: 1
+  EdgeFrustumCullingOffset: 0.1
+  NearPlaneOffset: 2.5
+  UseDepthOcclusionCulling: 1
+  OccludHeightOffset: 1.5
+  distanceDensityCulling: 1
+  FullDensityDistance: 60
   renderType: 0
   ProcedualMeshMaterial: {fileID: 2100000, guid: 3b14d1de8eb6c7c4cbee36508473c8c1, type: 2}
   procedualMeshSegments: 2

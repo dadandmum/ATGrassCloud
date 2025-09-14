@@ -52,16 +52,20 @@ namespace ATGrassCloud
             // height = (int)(desc.height * 0.25f);
 
             // 自动分配或重用，仅当尺寸/格式变化时重新分配
-            RenderingUtils.ReAllocateIfNeeded(ref m_WindRT_Ping, new RenderTextureDescriptor(
+            var desc = new RenderTextureDescriptor(
                 texSize, 
                 texSize, 
                 RenderTextureFormat.RGFloat,
-                 0));
-            RenderingUtils.ReAllocateIfNeeded(ref m_WindRT_Pong, new RenderTextureDescriptor(
-                texSize, 
-                texSize, 
-                RenderTextureFormat.RGFloat,
-                 0));
+                0,
+                0,
+                RenderTextureReadWrite.Linear
+                );
+            desc.useMipMap = false;
+            desc.autoGenerateMips = false;
+            desc.enableRandomWrite = false;
+            desc.msaaSamples = 1;
+            RenderingUtils.ReAllocateIfNeeded(ref m_WindRT_Ping, desc);
+            RenderingUtils.ReAllocateIfNeeded(ref m_WindRT_Pong, desc);
 
         }
 
@@ -92,6 +96,7 @@ namespace ATGrassCloud
 
             CommandBuffer cmd = CommandBufferPool.Get();
 
+            
             using (new ProfilingScope(cmd, new ProfilingSampler(m_ProfilerTag)))
             {
                 if ( data.syncMaterial )
@@ -102,7 +107,7 @@ namespace ATGrassCloud
                 cmd.SetGlobalVector("_WindPositionParams", GetWindPositionParams());
                 // 使用 Blit 将 current -> next，通过材质更新风场
                 cmd.Blit(WindRT_current, WindRT_next, m_UpdateMaterial, 0);
-
+               
                 // Ping-Pong 交换
                 m_UseFirst = !m_UseFirst;
 

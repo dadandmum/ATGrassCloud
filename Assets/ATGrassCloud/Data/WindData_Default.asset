@@ -18,7 +18,7 @@ MonoBehaviour:
   windWorldRange: 30
   windWorldSnap: 5
   windWorldFade: 10
-  updateMaterial: {fileID: 2100000, guid: 3c5701963ddbab6499a0f18dafcdb325, type: 2}
+  updateMaterial: {fileID: 2100000, guid: 0f028f0a9161e824885b072c7da4bdd5, type: 2}
   syncMaterial: 1
   enableDebug: 0
   type: 0
