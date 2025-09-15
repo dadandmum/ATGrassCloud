@@ -16,5 +16,18 @@ namespace ATGrassCloud
 
         [InlineEditor]
         public List<ATGrassCascadeData> cascadeDataList;
+
+        [BoxGroup("Debug")]
+        [OnValueChanged("UpdateDebug")]
+        public bool debugCascade = false;
+
+        public void UpdateDebug()
+        {
+            for (int i = 0; i < cascadeDataList.Count; i++)
+            {
+                cascadeDataList[i].debugCascade = debugCascade;
+            }
+
+        }
     }
 }

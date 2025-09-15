@@ -19,6 +19,28 @@ float3 grass_ModelNormal(
     return normalize(forward + blendOffset);
 }
 
+
+float3 grass_GetTangent(
+    float3 up , 
+    float3 forward ,
+    float3 modelTangent
+)
+{
+    float3 newForward = normalize(forward);
+    float3 right = normalize( cross(up, newForward));
+    float3 newUp = normalize( - cross(right, newForward));
+
+    
+    // 标准变换：将模型法线变换到世界/局部空间
+    float3 T = modelTangent.x * right +
+               modelTangent.y * newUp +
+               modelTangent.z * newForward;
+    T = normalize(T);
+    return T;
+
+
+}
+
 float3 grass_GetNormal(
     float3 positionModel,
     float3 up , 
@@ -26,12 +48,18 @@ float3 grass_GetNormal(
     float3 modelNormal,
     float droop) {
 
-    float3 right = -cross(up, forward);
+    // float3 right = -cross(up, forward);
+    // float3 newUp = cross(right, forward);
+
+    float3 newForward = normalize(forward);
+    float3 right = normalize( cross(up, newForward));
+    float3 newUp = normalize( - cross(right, newForward));
+
     
     // 标准变换：将模型法线变换到世界/局部空间
     float3 N = modelNormal.x * right +
-               modelNormal.y * up +
-               modelNormal.z * forward;
+               modelNormal.y * newUp +
+               modelNormal.z * newForward;
     N = normalize(N);
 
     // clamp the stretch to avoid negative( ignore the grass drop too down)
@@ -173,7 +201,7 @@ half3 ShadeGrassBlade_PBR(
     // 6. Final Color
     // =====================
 
-    half3 color = (diffuse + specular) * NdotL * lighting;
+    half3 color = (diffuse + specular ) * NdotL * lighting;
 
     // =====================
     // 7. [Optional] Artistic Enhancement: Tip Gloss
@@ -210,7 +238,7 @@ float3 grass_Shading(
     result += ShadeGrassBlade_PBR(mainLight, normalWS, viewWS, albedo, metallic, smoothness, positionModel.y);
 #endif
     
-    int additionalLightsCount = 4;
+    int additionalLightsCount = GetAdditionalLightsCount();
     for (int i = 0; i < additionalLightsCount; ++i)
     {
         Light light = GetAdditionalLight(i, positionWS);
@@ -225,5 +253,32 @@ float3 grass_Shading(
     
     return result;
 }
+
+
+float3 grass_ShadingPBR(
+    float3 albedo,
+    float smoothness,
+    float metallic,
+    float3 positionWS,
+    float3 normalWS,
+    float3 viewWS)
+{
+    float3 result = float3(0,0,0);
+    float3 ambient = grass_AmbientDiffuse(albedo);
+    result += ambient;
+
+    Light mainLight = GetMainLight(TransformWorldToShadowCoord(positionWS));
+    result += ShadeGrassBlade_PBR(mainLight, normalWS, viewWS, albedo, metallic, smoothness, 0);
+    
+    int additionalLightsCount = 4;
+    for (int i = 0; i < additionalLightsCount; ++i)
+    {
+        Light light = GetAdditionalLight(i, positionWS);
+        result += ShadeGrassBlade_PBR(light, normalWS, viewWS, albedo, metallic, smoothness, 0);
+    }
+    
+    return result;
+}
+
 
 #endif

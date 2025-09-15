@@ -125,15 +125,28 @@ float3 GetDefaultFaceDirection( float3 pivot , uint rand, float randomness, floa
     float3 bitangentDir = cross( direcitonToCamera , tangentDir);
 
     float offsetRange = lerp( 1.0f , 0.02f , dirY ) * range;
-    float3 offsetNoise = (sin(angle)  * tangentDir + cos(angle)  * bitangentDir) * offsetRange;
+    float3 offsetNoise = (sin(angle) * tangentDir + cos(angle) * bitangentDir) * offsetRange;
     return normalize(offsetNoise + direcitonToCamera);
 }
 
+float3 GetRandomFaceDirection(uint rand)
+{
+    float angle = decodeRandLow(rand) * 6.28318530718;
+    float3 faceDirection = float3(sin(angle) , 0 , cos(angle));
+    return faceDirection;
+}
+
+
 float3 grass_RecalculateByDirection( float3 up , float3 forward , float3 positionModel , float droop  )
 {
+    // float3 newForward = normalize(forward);
+    // float3 right = normalize(- cross(up, newForward));
+    // float3 newUp = normalize( cross(right, newForward));
+    
     float3 newForward = normalize(forward);
-    float3 right = normalize(-cross(up, newForward));
-    float3 newUp = normalize( cross(right, newForward));
+    float3 right = normalize( cross(up, newForward));
+    float3 newUp = normalize( - cross(right, newForward));
+
 
     float3 newPosition = positionModel.x * right + positionModel.y * newUp + positionModel.z * newForward;
     newPosition += droop * positionModel.y * positionModel.y * float3( 0 , -1.0 , 0 );

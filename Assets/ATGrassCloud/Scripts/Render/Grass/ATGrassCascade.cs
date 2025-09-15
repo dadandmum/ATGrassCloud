@@ -87,14 +87,27 @@ namespace ATGrassCloud
             args = new uint[5];
 
             grassMat = null;
-            if ( data.ProcedualMeshMaterial == null )
+        
+            if (data.renderType == ATGrassRenderType.ProcedualMesh)
             {
-                return;
+                if (data.ProcedualMeshMaterial != null)
+                {
+                    grassMat = new Material(data.ProcedualMeshMaterial);
+                    // copy material property
+                    grassMat.CopyPropertiesFromMaterial(data.ProcedualMeshMaterial);
+                }else{
+                    Debug.LogError("ProcedualMeshMaterial is null");
+                }
+            }else if ( data.renderType == ATGrassRenderType.Mesh)
+            {
+                if (data.MeshMaterial != null)
+                {
+                    grassMat = new Material(data.MeshMaterial);
+                    grassMat.CopyPropertiesFromMaterial(data.MeshMaterial);
+                }else{
+                    Debug.LogError("MeshMaterial is null");
+                }
             }
-
-            grassMat = new Material(data.ProcedualMeshMaterial);
-            // copy material property
-            grassMat.CopyPropertiesFromMaterial(data.ProcedualMeshMaterial);
 
             grassDataInit = new GrassData[data.GetMaxInstanceCount()];
             for (int i = 0; i < grassDataInit.Length; i++)
@@ -143,11 +156,12 @@ namespace ATGrassCloud
             argsBuffer?.Release();
             argsBuffer = new ComputeBuffer(1, 5 * sizeof(uint), ComputeBufferType.IndirectArguments);
 
+            Mesh mesh = GetGrassMesh();
             
-            args[0] = (uint)GetGrassMeshCache().GetIndexCount(0);
+            args[0] = (uint)mesh.GetIndexCount(0);
             args[1] = 1; // this value is changing in UpdateGrassData
-            args[2] = (uint)GetGrassMeshCache().GetIndexStart(0);
-            args[3] = (uint)GetGrassMeshCache().GetBaseVertex(0);
+            args[2] = (uint)mesh.GetIndexStart(0);
+            args[3] = (uint)mesh.GetBaseVertex(0);
             args[4] = 0;
             argsBuffer.SetData(args);
         }
@@ -289,7 +303,11 @@ namespace ATGrassCloud
                if ( data.renderType == ATGrassRenderType.ProcedualMesh )
                {
                     RenderProcedualMesh(context, ref renderingData, cmd);
-               }        
+               } 
+               else if ( data.renderType == ATGrassRenderType.Mesh )
+               {
+                    RenderMesh(context, ref renderingData, cmd);
+               }
                 
 
             }
@@ -298,7 +316,7 @@ namespace ATGrassCloud
 
         public void RenderProcedualMesh(ScriptableRenderContext context, ref RenderingData renderingData, CommandBuffer cmd)
         {
-            if (grassMat == null || data.ProcedualMeshMaterial == null)
+            if (grassMat == null || data.renderType != ATGrassRenderType.ProcedualMesh)
             {
                 return;
             }
@@ -307,15 +325,19 @@ namespace ATGrassCloud
             Bounds cameraBounds = GrassPrePass.CalculateCameraBounds(camera, data.GetMaxDistance());
             var mapData = GrassPrePass.GetDrawTopDownTextureData(cameraBounds , data.GetMaxDistance() , data.GetSnapDistance());
 
-            if ( data.updateMaterial)
+            if (data.updateMaterial && data.ProcedualMeshMaterial != null)
+            {
                 grassMat.CopyPropertiesFromMaterial(data.ProcedualMeshMaterial);
+            }
 
             grassMat.EnableKeyword("_PROCEDURAL_MESH");
             grassMat.SetVector("_MapData", mapData);
             grassMat.SetBuffer("_GrassData", grassDataBuffer);
             grassMat.SetVector("_CascadeRange", data.GetRangeData());
+            grassMat.SetVector("_DebugColor", data.debugCascade? data.debugColor : new Vector4(0,0,0,0));
 
             cmd.SetGlobalVector("unity_LightData", new Vector4(1.0f,4.0f,1.0f,0));
+
             cmd.DrawMeshInstancedIndirect(
                 GetGrassMeshCache(),
                 0 ,
@@ -326,12 +348,69 @@ namespace ATGrassCloud
 
             );
 
-            
             context.ExecuteCommandBuffer(cmd);
             cmd.Clear();
         }
 
 
+        public void RenderMesh(ScriptableRenderContext context, ref RenderingData renderingData, CommandBuffer cmd)
+        {
+            if (grassMat == null || data.renderType != ATGrassRenderType.Mesh)
+            {
+                return;
+            }
+
+            Camera camera = Camera.main;
+            Bounds cameraBounds = GrassPrePass.CalculateCameraBounds(camera, data.GetMaxDistance());
+            var mapData = GrassPrePass.GetDrawTopDownTextureData(cameraBounds , data.GetMaxDistance() , data.GetSnapDistance());
+
+            if (data.updateMaterial)
+            {
+                if ( data.MeshMaterial != null)
+                {
+                    grassMat.CopyPropertiesFromMaterial(data.MeshMaterial);
+                }
+            }
+
+            grassMat.SetVector("_MapData", mapData);
+            grassMat.SetBuffer("_GrassData", grassDataBuffer);
+            grassMat.SetVector("_CascadeRange", data.GetRangeData());
+            grassMat.SetVector("_DebugColor", data.debugCascade? data.debugColor : new Vector4(0,0,0,0));
+
+            cmd.SetGlobalVector("unity_LightData", new Vector4(1.0f,4.0f,1.0f,0));
+
+            Mesh mesh = data.Mesh;
+            if ( mesh == null )
+            {
+                return;
+            }
+
+            cmd.DrawMeshInstancedIndirect(
+                mesh,
+                0 ,
+                grassMat,
+                0,
+                argsBuffer,
+                0
+
+            );
+
+            context.ExecuteCommandBuffer(cmd);
+            cmd.Clear();
+        }
+
+    public Mesh GetGrassMesh()
+    {
+        if ( data.renderType == ATGrassRenderType.ProcedualMesh)
+        {
+            return GetGrassMeshCache();
+        }
+        else if ( data.renderType == ATGrassRenderType.Mesh)
+        {
+            return data.Mesh;
+        }
+        return null;
+    }
 
     int oldSubdivision = -1;
     public Mesh GetGrassMeshCache() //Code to generate the grass blade mesh based on the subdivision value

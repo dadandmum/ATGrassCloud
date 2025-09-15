@@ -161,10 +161,24 @@ namespace ATGrassCloud
         [ShowIf("renderType", ATGrassRenderType.ProcedualMesh)]
         public int procedualMeshSegments = 3;
 
+
         [BoxGroup("Rendering")]
-        [ShowIf("renderType", ATGrassRenderType.ProcedualMesh)]
+        [ShowIf("renderType", ATGrassRenderType.Mesh)]
+        public Material MeshMaterial;
+
+        [BoxGroup("Rendering")]
+        [ShowIf("renderType", ATGrassRenderType.Mesh)]
+        public Mesh Mesh;
+
+
+        [BoxGroup("Rendering")]
         public bool updateMaterial = false;
 
+        [BoxGroup("Debug")]
+        public bool debugCascade = false;
+
+        [BoxGroup("Debug")]
+        public Color debugColor = Color.red;
 
 
 

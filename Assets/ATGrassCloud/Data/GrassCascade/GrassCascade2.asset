@@ -39,3 +39,7 @@ MonoBehaviour:
   ProcedualMeshMaterial: {fileID: 2100000, guid: 3b14d1de8eb6c7c4cbee36508473c8c1, type: 2}
   procedualMeshSegments: 2
   updateMaterial: 1
+  MeshMaterial: {fileID: 0}
+  Mesh: {fileID: 0}
+  debugCascade: 0
+  debugColor: {r: 0, g: 0.11259365, b: 1, a: 1}

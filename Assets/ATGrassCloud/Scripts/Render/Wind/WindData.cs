@@ -18,9 +18,9 @@ namespace ATGrassCloud
             DistortSimplexNoise,
             CurlNoise,
         }
-        public Texture2D windMap0;
-        public Vector3 windDirection = Vector3.zero;
-        public float windSpeed = 0.0f;
+        // public Texture2D windMap0;
+        // public Vector3 windDirection = Vector3.zero;
+        // public float windSpeed = 0.0f;
 
         public float windWorldRange = 30f;
         public float windWorldSnap = 5f;
