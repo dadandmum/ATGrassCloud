@@ -1,6 +1,7 @@
 ﻿#ifndef __GRASS_SHADING_LIB_HLSL__
 #define __GRASS_SHADING_LIB_HLSL__
 
+#define kDielectricSpec half4(0.04, 0.04, 0.04, 1.0 - 0.04) 
          
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 // #define _SHADER_TIP_SPECULAR 1
@@ -14,7 +15,7 @@ float3 grass_ModelNormal(
     float normalBlend
 )
 {
-    float3 forward = float3( 0,0,1.0f);
+    float3 forward = float3( 0,0,-1.0f);
     float3 blendOffset = float3(1.0,0,0) * normalBlend * positionModel.x * 50.0 ;
     return normalize(forward + blendOffset);
 }
@@ -82,6 +83,7 @@ float3 grass_Albedo( float3 colorA , float3 colorB , float rand , float3 colorAO
 {
     float3 baseColor = lerp(colorA, colorB, rand);
     float3 albedo = lerp(colorAO, baseColor, pow( positionOS.y * positionOS.y , AOFactor) );
+    
     return albedo;
 }
 
@@ -115,10 +117,69 @@ half3 ShadeGrassBlade_TipSpecular(Light light, half3 N, half3 V, half3 albedo, h
     return result; 
 }
 
+// BRDF reference :
+// https://schuttejoe.github.io/post/disneybsdf/
 
 // Geometry function: Smith's method with GGX
-half grass_GeometrySchlickGGX(half k, half dotNV) {
-    return dotNV / (dotNV * (1.0h - k) + k);
+half GeometrySchlickGGX(half roughness, half NdotV) {
+    float r = (roughness + 1.0);
+    float k = (r * r) / 8.0;
+
+    float nom = NdotV;
+    float denom = NdotV * (1.0 - k) + k;
+    return nom / denom;
+}
+
+float GeometrySmith( float NdotV , float NdotL , float roughness)
+{
+    float ggx2 = GeometrySchlickGGX(roughness, NdotV);
+    float ggx1 = GeometrySchlickGGX(roughness, NdotL);
+
+    return ggx1 * ggx2 ;
+}
+
+    // version in https://learnopengl.com/PBR/Theory
+float DistributionGGX( float NdotH , float roughness )
+{
+    float alpha = max( roughness * roughness, 0.0001f); 
+    float alpha2 = max( alpha * alpha, 0.0001f);
+    float NdotH_abs = max(NdotH,0.00001f);
+    float NdotH2 = NdotH_abs * NdotH_abs;
+    
+    float nom = alpha2;
+    float denom = (NdotH2 * (alpha2 - 1.0f) + 1.000001f);
+    denom = 3.14159265359 * denom * denom;
+
+    return nom / denom ;
+}
+
+
+// version in Unity URP and disney
+// https://schuttejoe.github.io/post/disneybsdf/
+float SpecularUnity( float NdotH , float HdotL, float roughness )
+{
+    float alpha = max( roughness * roughness, 0.0001f); 
+    float alpha2 = max( alpha * alpha, 0.0001f);
+    float NdotH_abs = max(NdotH,0.00001f);
+    float NdotH2 = NdotH_abs * NdotH_abs;
+    float HdotL_abs = max(HdotL,0.00001f);
+    float HdotL2 = HdotL_abs * HdotL_abs;
+
+    float nom = alpha2;
+    float d = (NdotH2 * (alpha2 - 1.0f) + 1.000001f);
+    float normalizeTerm = roughness * 4.0f - 2.0f ;
+    float denom = d * d * max (0.1f , HdotL2) * normalizeTerm;
+
+    return HdotL2;
+
+    return nom / denom ;
+}
+
+
+
+float3 FresnelSchlick(float VdotH, float3 F0)
+{
+    return F0 + (1.0f - F0) * pow( 1.0f - max( VdotH , 0.001f) , 5.0f);
 }
 
 
@@ -127,24 +188,26 @@ half grass_GeometrySchlickGGX(half k, half dotNV) {
 /// Uses Cook-Torrance BRDF with GGX normal distribution and Schlick approximations.
 /// Includes artistic enhancement for tip specular (e.g., dew or backlit effect).
 /// </summary>
-half3 ShadeGrassBlade_PBR(
+float3 ShadeGrassBlade_PBR(
     Light light,
-    half3 N,
-    half3 V,
-    half3 albedo,
-    half metallic,
-    half smoothness,
-    half positionY
+    float3 N,
+    float3 V,
+    float3 albedo,
+    float metallic,
+    float smoothness,
+    float positionY
 )
 {
-    half3 L = light.direction;
-    half3 H = normalize(L + V);
+    float3 L = light.direction;
+    float3 H = normalize(L + V);
 
     // Dot products
-    half NdotL = saturate(dot(N, L));
-    half NdotV = saturate(dot(N, V));
-    half NdotH = saturate(dot(N, H));
-    half VdotH = saturate(dot(V, H));
+    float NdotL = saturate(dot(N, L));
+    float NdotV = saturate(dot(N, V));
+    float NdotH = saturate(dot(N, H));
+    float VdotH = saturate(dot(V, H));
+    float LdotH = saturate(dot(L, H));
+
 
     // Avoid division by zero in denominator 
     NdotL = max(NdotL, 1e-10);
@@ -155,63 +218,66 @@ half3 ShadeGrassBlade_PBR(
     // =====================
 
     // Base reflectivity (F0): 4% for dielectrics, albedo for metals
-    half3 F0 = lerp(half3(0.04h, 0.04h, 0.04h), albedo, metallic);
+    float3 F0 = lerp(kDielectricSpec.rgb, albedo, metallic);
 
     // Convert smoothness to roughness
-    half roughness = 1.0h - smoothness;
-    roughness = max(roughness, 0.001h); // Prevent numerical instability
-    half alpha = roughness * roughness; // α² for GGX distribution
+    float roughness = 1.0f - smoothness;
+    roughness = max(roughness, 0.001f); // Prevent numerical instability
+    float alpha = max( roughness * roughness, 0.0001f); // α² for GGX distribution
 
     // =====================
     // 2. BRDF Components
     // =====================
 
     // Combined geometric shadowing
-    half G = grass_GeometrySchlickGGX(roughness, NdotV) * grass_GeometrySchlickGGX(roughness, NdotL);
-
+    float G = GeometrySmith(NdotV, NdotL, roughness);
     // Normal distribution function: GGX (Trowbridge-Reitz)
-    half D = alpha * alpha / (3.1415926 * pow((NdotH * NdotH * (alpha*alpha - 1.0h) + 1.0h), 2.0h));
+    float d = NdotH * NdotH * ( alpha * alpha - 1.0f ) + 1.000001f;
+    // float D = alpha * alpha / (3.1415926 * pow((NdotH * NdotH * (alpha*alpha - 1.0f) + 1.000001f), 2.0f));
+    // float D = alpha * alpha / (d * d * max(0.1h, LdotH ));
+    // float D = DistributionUnity(NdotH, LdotH, roughness);
+    float D = DistributionGGX(NdotH, roughness);
+
 
     // Fresnel: Schlick approximation
-    half3 F = F0 + (1.0h - F0) * pow(1.0h - VdotH, 5.0h);
+    float3 F = FresnelSchlick(VdotH, F0);
 
     // =====================
     // 3. Cook-Torrance Specular BRDF
     // =====================
 
-    half3 numerator = D * G * F;
-    half denominator = 4.0h * NdotL * NdotV;
-    half3 specular = numerator / denominator;
+    float3 numerator = D * G * F;
+    float denominator = 4.0f * NdotL * NdotV;
+    float3 specular = numerator / denominator;
 
     // =====================
     // 4. Diffuse Reflection (energy conservation)
     // =====================
-
+ 
     // Diffuse contribution: only non-metallic parts reflect diffuse
-    half3 kD = (1.0h - F) * (1.0h - metallic);
-    half3 diffuse = kD * albedo / 3.1415926;
+    float3 kD = (1.0f - F) * (1.0f - metallic);
+    float3 diffuse = kD * albedo / 3.1415926;
 
     // =====================
     // 5. Light Attenuation
     // =====================
 
-    half3 lighting = light.color * light.shadowAttenuation * light.distanceAttenuation;
+    float3 lighting = light.color * light.shadowAttenuation * light.distanceAttenuation;
 
     // =====================
     // 6. Final Color
     // =====================
 
-    half3 color = (diffuse + specular ) * NdotL * lighting;
+    float3 color = (diffuse + specular ) * NdotL * lighting;    
 
     // =====================
     // 7. [Optional] Artistic Enhancement: Tip Gloss
     // =====================
 
     // Enhance specular on grass tips (e.g., dew, backlit edge)
-    half tipGloss = saturate(positionY * 2.0h); // Adjust multiplier as needed
-    half3 enhancedSpecular = F * tipGloss * smoothness * lighting;
-    color += enhancedSpecular * 0.5h; // Add subtle enhancement
-
+    float tipGloss = saturate(positionY * 2.0f); // Adjust multiplier as needed
+    float3 enhancedSpecular = F * tipGloss * smoothness * lighting;
+    color += enhancedSpecular * 0.5f; // Add subtle enhancement
 
     return color;
 }
@@ -278,6 +344,59 @@ float3 grass_ShadingPBR(
     }
     
     return result;
+}
+
+half3 WrapLighting(half3 lightDir, half3 normal, half wrapLight)
+{
+    return saturate((dot(lightDir, normal) + wrapLight) / ((1 + wrapLight) * (1 + wrapLight)));
+}
+
+// SSS模拟函数 (基于厚度和光线方向)
+half3 SubsurfaceScattering(half3 albedo, Light light, half3 viewDir, half3 normal, half thickness, half3 sssTint, half sssPower, half sssDistortion, half sssScale)
+{
+    half3 lightDir = light.direction;
+    half3 lighting = light.color * light.shadowAttenuation * light.distanceAttenuation;
+
+    // 计算光线入射方向的反向
+    half3 lightTransmission = -lightDir;
+    
+    // 根据厚度图和光线方向计算SSS贡献
+    // 这里使用了一个简化的模型，基于光线穿透和散射
+    half3 sssNormal = normal + lightTransmission * sssDistortion;
+    sssNormal = normalize(sssNormal);
+    
+    // 使用Wrap Lighting模拟透射光
+    half wrapLight = 0.5; // 控制Wrap效果
+    half3 sssLighting = WrapLighting(lightTransmission, sssNormal, wrapLight);
+    
+    // 应用厚度和SSS参数
+    half sssIntensity = pow(saturate(dot(viewDir, -sssNormal)), sssPower) * thickness * sssScale * 20.0;
+    
+    // 最终SSS颜色
+    half3 sssColor = sssLighting * sssTint * sssIntensity * albedo;
+
+    
+    return sssColor * lighting;
+}
+
+
+half3 grass_SubsurfaceScattering(half3 albedo, float3 positionWS, half3 viewDir, half3 normal, half thickness, half3 sssTint, half sssPower, half sssDistortion, half sssScale)
+{
+    float3 result = float3(0,0,0);
+
+    Light mainLight = GetMainLight(TransformWorldToShadowCoord(positionWS));
+    result += SubsurfaceScattering(albedo, mainLight, viewDir, normal, thickness, sssTint, sssPower, sssDistortion, sssScale);
+    
+    int additionalLightsCount = 4;
+    for (int i = 0; i < additionalLightsCount; ++i)
+    {
+        Light light = GetAdditionalLight(i, positionWS);
+        result += SubsurfaceScattering(albedo, light, viewDir, normal, thickness, sssTint, sssPower, sssDistortion, sssScale);
+    }
+    
+    return result;
+
+
 }
 
 

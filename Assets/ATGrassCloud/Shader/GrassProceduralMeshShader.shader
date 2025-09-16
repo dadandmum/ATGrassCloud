@@ -23,7 +23,7 @@
         _GrassUpDirectionRandom("Grass Up Direction Randomness", Range(0, 1)) = 0.25
         _GrassFaceDirectionRandom("Grass Face Direction Randomness", Range(0, 1)) = 0.25
         _GrassDroopIntensity("Grass Droop Intensity", Range(0, 1)) = 2.0
-        _GrassCurving("Grass Curving", Float) = 0.1
+        // _GrassCurving("Grass Curving", Float) = 0.1
 
         [Space]
         _ExpandDistantGrassWidth("Expand Distant Grass Width", Float) = 1
@@ -38,8 +38,8 @@
         _WindRandomness("Wind Randomness", Range(0, 1)) = 0.25
         _WindStrength("Wind Strength", Float) = 1
 
-        [Header(Lighting)][Space]
-        _RandomNormal("Random Normal", Range(0, 1)) = 0.1
+        // [Header(Lighting)][Space]
+        // _RandomNormal("Random Normal", Range(0, 1)) = 0.1
 
         [Toggle(_SHADER_PBR)]_ShaderPBR("Shader PBR", Float) = 1
         [Toggle(_SHADER_TIP_SPECULAR)]_ShaderTipSpecular("Shader Tip Specular", Float) = 0
@@ -134,9 +134,6 @@
 
             CBUFFER_END
 
-            TEXTURE2D(_WindTexture);
-            SAMPLER(sampler_WindTexture);
-
             Varyings vert(Attributes IN, uint instanceID : SV_InstanceID)
             {
                 Varyings OUT;
@@ -149,7 +146,7 @@
                 uv = uv * 0.5 + 0.5;
 
                 float3 upDirection = GetDefaultUpDirection(pivot, rand, _GrassUpDirectionRandom, _WorldSpaceCameraPos);
-                float3 faceDirection = - GetDefaultFaceDirection(pivot, rand, _GrassFaceDirectionRandom, _WorldSpaceCameraPos);
+                float3 faceDirection = GetDefaultFaceDirection(pivot, rand, _GrassFaceDirectionRandom, _WorldSpaceCameraPos);
 
                 float3 positionOS = IN.positionOS;
                 #ifdef _PROCEDURAL_MESH
@@ -194,8 +191,6 @@
                 OUT.color = grass_Shading(albedo, _Smoothness, _Metallic, positionWS, normalWS, viewWS, specularMask, positionModel);
                 OUT.color += _DebugColor;
 
-
-                return OUT;
 
                 return OUT;
             }

@@ -10,12 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 57c60a8e54b76f044b6ff4f887d6002e, type: 3}
-  m_Name: GrassData_Default
+  m_Name: GrassData_Mesh_Ribbon
   m_EditorClassIdentifier: 
   generateHeightMat: 1
   heightMapMat: {fileID: 2100000, guid: 40382e58bb275a94a91d8afbe6692a53, type: 2}
   computeShader: {fileID: 7200000, guid: 1e609a6395ccc154582fe1eb3328c85a, type: 3}
   cascadeDataList:
-  - {fileID: 11400000, guid: 32afbac079036164fbb8ebad83ee4ff9, type: 2}
-  - {fileID: 11400000, guid: af40f539bfcf34c47b5add4d7edcc607, type: 2}
-  - {fileID: 11400000, guid: ecbb2cf1cc1d28f49bf96c864fb0ef56, type: 2}
+  - {fileID: 11400000, guid: c7c96c7c438463e47b2694500394684c, type: 2}
+  - {fileID: 11400000, guid: 6a85737eaee7e08458f0f9ec8c216247, type: 2}
+  debugCascade: 0

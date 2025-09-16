@@ -12,12 +12,18 @@
         _RoughnessTex("Roughness Texture", 2D) = "white" {}
         _OpacityTex("Opacity Texture", 2D) = "white" {}
         _NormalIntensity("Normal Intensity", Range(0, 1)) = 0.5
-
-
-        _AOColor("AO Color", Color) = (0.5,0.5,0.5)
-        _AOFactor("AO Factor", Range(0, 2.0)) = 0.5
+        // _AOColor("AO Color", Color) = (0.5,0.5,0.5)
+        // _AOFactor("AO Factor", Range(0, 2.0)) = 0.5
         _Smoothness("Smoothness", Range(0, 1)) = 0.5
         _Metallic("Metallic", Range(0, 1)) = 0.5
+
+        [Header(Subsurface Scattering)]
+        _SSSTint("SSS Tint", Color) = (1.0,1.0,1.0, 1) // SSS Color 
+        _SSSTranslucencyTex("SSS Translucency Map", 2D) = "white" {} // SSS Color Map  
+        _SSSPower("SSS Power", Range(0.0, 10.0)) = 1.0 
+        _SSSDistortion("SSS Distortion", Range(0.0, 2.0)) = 0.5
+        _SSSScale("SSS Scale", Range(0.0, 1.0)) = 0.5
+
 
         // [Header(Grass Geometry)][Space]
         // _GrassWidth("Grass Width", Float) = 1
@@ -26,15 +32,17 @@
         // _GrassWidthRandomness("Grass Width Randomness", Range(0, 1)) = 0.25
         // _GrassHeightRandomness("Grass Height Randomness", Range(0, 1)) = 0.5
 
-        [Header(Grass Direction)][Space]
+        [Header(Grass Random)][Space]
         _GrassUpDirectionRandom("Grass Up Direction Randomness", Range(0, 1)) = 0.25
         _GrassFaceDirectionRandom("Grass Face Direction Randomness", Range(0, 1)) = 0.25
+        _GrassScaleRandom("Grass Scale Randomness", Range(0, 1)) = 0.25
         _GrassDroopIntensity("Grass Droop Intensity", Range(0, 1)) = 0.5
-        _GrassCurving("Grass Curving", Float) = 0.1
+        // _GrassCurving("Grass Curving", Float) = 0.1
 
-        [Space]
+        [Header(Grass Expand)][Space]
+        _GrassScale("Grass Scale", Float) = 1
         _ExpandDistantGrassWidth("Expand Distant Grass Width", Float) = 1
-        _ExpandDistantGrassRange("Expand Distant Grass Range", Vector) = (50, 200, 0, 0)
+        // _ExpandDistantGrassRange("Expand Distant Grass Range", Vector) = (50, 200, 0, 0)
         
         // [Header(Normal)][Space]
         // _GrassNormalBlend("Grass Normal Blend", Range(-1, 1)) = 0.25
@@ -57,7 +65,9 @@
         // _RandomNormal("Random Normal", Range(0, 1)) = 0.1
 
         [Toggle(_SINGLE_MESH)]_ShaderPBR("Single Mesh", Float) = 1
-        [Toggle(_INSTANCE_MESH)]_ShaderTipSpecular("Instance Mesh", Float) = 0
+        [Toggle(_FACE_TO_CAMERA)]_FaceToCamera("Face To Camera", Float) = 0
+
+        // [Toggle(_INSTANCE_MESH)]_ShaderTipSpecular("Instance Mesh", Float) = 0
     }
 
     SubShader
@@ -79,7 +89,9 @@
             #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
             #pragma multi_compile _ _ADDITIONAL_LIGHT_SHADOWS
             #pragma multi_compile _ _SHADOWS_SOFT
-            #pragma multi_compile _ _SINGLE_MESH _INSTANCE_MESH
+            #pragma multi_compile _ _FACE_TO_CAMERA
+
+            //#pragma multi_compile _ _SINGLE_MESH _INSTANCE_MESH
             
             #pragma multi_compile_fog
 
@@ -117,6 +129,13 @@
                 float _Metallic;
                 float _NormalIntensity;
 
+                // SSS
+                half3 _SSSTint;
+                float _SSSPower;
+                float _SSSDistortion;
+                float _SSSScale;
+
+
 
                 // Geometry 
                 // float _GrassWidth;
@@ -127,10 +146,13 @@
 
                 float _GrassUpDirectionRandom;
                 float _GrassFaceDirectionRandom;
+                float _GrassScaleRandom;
+
 
                 float _GrassDroopIntensity;
                 float _GrassCurving;
 
+                float _GrassScale;
                 float _ExpandDistantGrassWidth;
                 float2 _ExpandDistantGrassRange;
                 float4 _CascadeRange; // ( innerRange , outterRange , 1.0f / innerFade , 1.0f / outterFade )
@@ -154,13 +176,11 @@
 
 
 
-#ifdef _INSTANCE_MESH
+// #ifdef _INSTANCE_MESH
                 StructuredBuffer<GrassData> _GrassData;
-#endif
+// #endif
             CBUFFER_END
 
-            TEXTURE2D(_WindTexture);
-            SAMPLER(sampler_WindTexture);
             TEXTURE2D(_AlbedoTex);
             SAMPLER(sampler_AlbedoTex);
             TEXTURE2D(_NormalTex);
@@ -169,25 +189,34 @@
             SAMPLER(sampler_OpacityTex);
             TEXTURE2D(_RoughnessTex);
             SAMPLER(sampler_RoughnessTex);
+            TEXTURE2D(_SSSTranslucencyTex);
+            SAMPLER(sampler_SSSTranslucencyTex);
+
 
             Varyings vert(Attributes IN, uint instanceID : SV_InstanceID)
             {
                 Varyings OUT;
-#ifdef _INSTANCE_MESH
+// #ifdef _INSTANCE_MESH
                 float3 pivot = _GrassData[instanceID].position;
                 uint rand = _GrassData[instanceID].rand0;
+#ifdef _FACE_TO_CAMERA
+                float3 faceDirection = GetDefaultFaceDirection(pivot, rand, _GrassFaceDirectionRandom, _WorldSpaceCameraPos);
+#else
                 float3 faceDirection = GetRandomFaceDirection(rand);
+#endif
                 float3 upDirection = GetDefaultUpDirection(pivot, rand, _GrassUpDirectionRandom, _WorldSpaceCameraPos);
 
-#else  //  _SINGLE_MESH
+// #else  //  _SINGLE_MESH
 
-                float3 pivot = float3(0, 0, 0);
-                float3 faceDirection = TransformObjectToWorld(float3(0,0,1.0));
-                float3 upDirection = TransformObjectToWorld(float3(0,1.0,0));
-                uint rand = 0;
-#endif 
+//                 float3 pivot = float3(0, 0, 0);
+//                 float3 faceDirection = TransformObjectToWorld(float3(0,0,1.0));
+//                 float3 upDirection = TransformObjectToWorld(float3(0,1.0,0));
+//                 uint rand = 0;
+// #endif 
                 
-                float3 positionModel = IN.positionOS;
+                float scale = max( 0.001f , _GrassScale) *  ( 1.0 - decodeRandByBit(rand, 3) * _GrassScaleRandom); 
+
+                float3 positionModel = IN.positionOS * scale;
                 // deal with wind
                 float2 wind = GetWind(pivot.xz, _WindPositionParams);
                 upDirection = grass_ApplyWindToUp(upDirection, wind, _WindStrength, rand , _WindRandomness, positionModel);
@@ -199,13 +228,13 @@
                     _GrassDroopIntensity);
                  
 
-#ifdef _INSTANCE_MESH
+// #ifdef _INSTANCE_MESH
                 float3 positionWS = pivot + TransformObjectToWorld(positionModelWithRot);
                 float3 tangentWS = IN.tangentOS.xyz;
-#else // _SINGLE_MESH
-                float3 positionWS = TransformObjectToWorld( IN.positionOS);
-                float3 tangentWS = TransformObjectToWorldDir(IN.tangentOS.xyz);
-#endif 
+// #else // _SINGLE_MESH
+//                 float3 positionWS = TransformObjectToWorld( IN.positionOS);
+//                 float3 tangentWS = TransformObjectToWorldDir(IN.tangentOS.xyz);
+// #endif 
  
                 float3 normalModel = normalize(IN.normalOS);
 
@@ -219,8 +248,6 @@
                 );
 
                 tangentWS = grass_GetTangent(upDirection, faceDirection, IN.tangentOS.xyz);
-
-
 
                 OUT.positionWS = positionWS;
                 OUT.positionCS = TransformWorldToHClip(OUT.positionWS);
@@ -292,33 +319,40 @@
 
             half4 frag(Varyings IN) : SV_Target
             { 
-
+                // Get Data fron Input 
                 float2 uv = IN.uv;
+
                 float opacity = SAMPLE_TEXTURE2D_LOD(_OpacityTex, sampler_OpacityTex, uv, 0 ).r;
                 clip(opacity - _Cutoff);
+                float3 positionWS = IN.positionWS;
+                float3 normalWS = normalize(IN.normalWS);
+                float3 tangentWS = IN.tangentWS;
 
                 int lod = GetTextureLOD(IN.positionWS, _WorldSpaceCameraPos, _TexMipDistance);
                 
                 float3 albedo = SAMPLE_TEXTURE2D_LOD(_AlbedoTex, sampler_AlbedoTex, uv, lod).rgb;
                 float roughness = SAMPLE_TEXTURE2D_LOD(_RoughnessTex , sampler_RoughnessTex, uv, lod).r;
-                float smoothness = _Smoothness;
+                float smoothness = (1.0 - roughness) * _Smoothness;
                 float metallic = _Metallic;
                 float3 normalTex = UnpackNormal(SAMPLE_TEXTURE2D_LOD(_NormalTex, sampler_NormalTex, uv, lod));
                 normalTex = normalize(normalTex);
 
-                float3 normalWS = normalize(IN.normalWS);
-                float3 tangentWS = IN.tangentWS;
                 // apply normal texture 
                 float3 bitangentWS = cross(normalWS, tangentWS);
                 float3 normalBump = normalize(tangentWS * normalTex.x + bitangentWS * normalTex.y + normalWS * normalTex.z);
                 normalWS = normalize( normalWS + normalBump * _NormalIntensity * 10 );
+                float3 viewWS = normalize(_WorldSpaceCameraPos - positionWS);
 
-                float3 color = grass_ShadingPBR(albedo, smoothness, metallic, IN.positionWS, normalWS, _WorldSpaceCameraPos);
+                // PBR
+                float3 color = grass_ShadingPBR(albedo, smoothness, metallic, positionWS, normalWS, viewWS);
+
+                // SSS
+                float3 sssColor = SAMPLE_TEXTURE2D_LOD(_SSSTranslucencyTex, sampler_SSSTranslucencyTex, uv, lod).rgb;
+                sssColor *= _SSSTint;
+                float sssThickness = 1.0;
+                color += grass_SubsurfaceScattering(albedo, positionWS, viewWS, normalWS, sssThickness, sssColor, _SSSPower, _SSSDistortion, _SSSScale);
 
                 return half4(color, opacity);
-
-
-
             }
             ENDHLSL
         }

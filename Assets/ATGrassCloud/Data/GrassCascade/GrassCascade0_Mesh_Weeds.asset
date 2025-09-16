@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8b32adf395595d44d89de82cf8c8903a, type: 3}
+  m_Name: GrassCascade0_Mesh_Weeds
+  m_EditorClassIdentifier: 
+  isRender: 1
+  cascadeName: Cascade0
+  cascadeLevel: 0
+  cascadeRange: {x: 5, y: 30}
+  cascadeInnerRange: 5
+  cascadeInnerFade: 5
+  cascadeOutterRange: 30
+  cascadeOutterFade: 15
+  cascadeTexSize: 3
+  maxInstanceCount: 1
+  instancePerTile: 1
+  TileSize: 0.66
+  heightMapLayer:
+    serializedVersion: 2
+    m_Bits: 768
+  HeightMapSnapDistance: 10
+  UseFrustumCulling: 1
+  EdgeFrustumCullingOffset: 0.1
+  NearPlaneOffset: 2.5
+  UseDepthOcclusionCulling: 1
+  OccludHeightOffset: 1.5
+  distanceDensityCulling: 1
+  FullDensityDistance: 40
+  renderType: 1
+  ProcedualMeshMaterial: {fileID: 2100000, guid: e5ecadc6bb0b8494fb2ff0aa2d52afb5, type: 2}
+  procedualMeshSegments: 6
+  MeshMaterial: {fileID: 2100000, guid: e5ecadc6bb0b8494fb2ff0aa2d52afb5, type: 2}
+  Mesh: {fileID: -2159081558171047961, guid: d5042307b8607cc42b617598951bdafe, type: 3}
+  updateMaterial: 1
+  debugCascade: 0
+  debugColor: {r: 1, g: 0, b: 0, a: 1}

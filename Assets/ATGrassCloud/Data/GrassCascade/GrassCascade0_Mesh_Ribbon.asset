@@ -10,36 +10,36 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8b32adf395595d44d89de82cf8c8903a, type: 3}
-  m_Name: GrassCascade2
+  m_Name: GrassCascade0_Mesh_Ribbon
   m_EditorClassIdentifier: 
   isRender: 1
-  cascadeName: Cascade2
-  cascadeLevel: 2
-  cascadeRange: {x: 100, y: 350}
-  cascadeInnerRange: 100
-  cascadeInnerFade: 25
-  cascadeOutterRange: 350
-  cascadeOutterFade: 100
-  cascadeTexSize: 1
+  cascadeName: Cascade0
+  cascadeLevel: 0
+  cascadeRange: {x: 5, y: 30}
+  cascadeInnerRange: 5
+  cascadeInnerFade: 5
+  cascadeOutterRange: 30
+  cascadeOutterFade: 15
+  cascadeTexSize: 3
   maxInstanceCount: 1
-  instancePerTile: 4
-  TileSize: 0.25
+  instancePerTile: 1
+  TileSize: 2
   heightMapLayer:
     serializedVersion: 2
     m_Bits: 768
-  HeightMapSnapDistance: 20
+  HeightMapSnapDistance: 10
   UseFrustumCulling: 1
   EdgeFrustumCullingOffset: 0.1
   NearPlaneOffset: 2.5
   UseDepthOcclusionCulling: 1
   OccludHeightOffset: 1.5
   distanceDensityCulling: 1
-  FullDensityDistance: 60
-  renderType: 0
-  ProcedualMeshMaterial: {fileID: 2100000, guid: 3b14d1de8eb6c7c4cbee36508473c8c1, type: 2}
-  procedualMeshSegments: 2
+  FullDensityDistance: 40
+  renderType: 1
+  ProcedualMeshMaterial: {fileID: 2100000, guid: e5ecadc6bb0b8494fb2ff0aa2d52afb5, type: 2}
+  procedualMeshSegments: 6
+  MeshMaterial: {fileID: 2100000, guid: 5ff4635811807d84c8bdc3f253b053fe, type: 2}
+  Mesh: {fileID: 5062580058802042514, guid: 8dd248dd7afe4f541a898dcd400f729e, type: 3}
   updateMaterial: 1
-  MeshMaterial: {fileID: 0}
-  Mesh: {fileID: 0}
   debugCascade: 0
-  debugColor: {r: 0, g: 0.11259365, b: 1, a: 1}
+  debugColor: {r: 1, g: 0, b: 0, a: 1}

@@ -90,9 +90,16 @@ namespace ATGrassCloud
 
             Camera camera = renderingData.cameraData.camera;
 
+            int depthWidth = 1;
+            int depthHeight = 1;
+
             Camera mainCam = Camera.main;
-            var depthWidth = mainCam.pixelWidth;
-            var depthHeight = mainCam.pixelHeight;
+            
+            if ( mainCam != null )
+            {
+                depthWidth = mainCam.pixelWidth;
+                depthHeight = mainCam.pixelHeight;
+            }
             depthWidth = Mathf.Max(depthWidth, 1);
             depthHeight = Mathf.Max(depthHeight, 1);
 
@@ -230,6 +237,9 @@ namespace ATGrassCloud
                 if ( m_UseCustomDepthPass)
                 {
                     Camera camera = Camera.main;
+                    if ( camera == null )
+                        camera = renderingData.cameraData.camera;
+
                     Matrix4x4 viewMatrix = camera.worldToCameraMatrix;
                     Matrix4x4 projMatrix = camera.projectionMatrix;// GL.GetGPUProjectionMatrix( camera.projectionMatrix , false);
 

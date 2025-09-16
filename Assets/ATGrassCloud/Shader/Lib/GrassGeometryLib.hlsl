@@ -90,6 +90,11 @@ float decodeRandHigh(uint rand)
     return ( rand >> 16 ) / 65535.0;
 }
 
+float decodeRandByBit( uint rand , int bit )
+{
+    return ( (rand >> bit) & 0xFFFF)  / 65535.0;
+
+}
 
 
 float3 GetDefaultUpDirection( float3 pivot , uint rand, float randomness, float3 cameraPos)
@@ -118,7 +123,7 @@ float3 GetDefaultFaceDirection( float3 pivot , uint rand, float randomness, floa
     float3 dirY = abs(direcitonToCamera.y);
     direcitonToCamera.y *= direcitonToCamera.y * 0.5 ;
     // direcitonToCamera.y *= 0;
-    direcitonToCamera = normalize(direcitonToCamera);
+    direcitonToCamera = - normalize(direcitonToCamera);
     float3 up = float3(0,1.0,0);
 
     float3 tangentDir = cross( up , direcitonToCamera);

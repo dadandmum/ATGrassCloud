@@ -172,9 +172,17 @@ namespace ATGrassCloud
             {
                 return;
             }
+
             using (new ProfilingScope(cmd, new ProfilingSampler("HeightMap Cascade " + data.cascadeName)))
             {
+
                 Camera camera = Camera.main;
+                if ( camera == null )
+                {
+                    camera = renderingData.cameraData.camera;
+
+                }
+
                 Matrix4x4 viewMatrix, projMatrix;
                 GrassPrePass.CalculateTopDownCameraData(
                     camera,
@@ -222,6 +230,11 @@ namespace ATGrassCloud
             using (new ProfilingScope(cmd, new ProfilingSampler("Calculate Grass Data " + data.cascadeName)))
             {
                 var camera = Camera.main;
+                if ( camera == null)
+                {
+                    camera = renderingData.cameraData.camera;
+                }
+
                 var cameraBounds = GrassPrePass.CalculateCameraBounds(camera, data.GetMaxDistance());
                 var tileSize = data.TileSize;
                 var maxBufferCount = data.GetMaxInstanceCount();
@@ -270,8 +283,8 @@ namespace ATGrassCloud
 
                 cmd.DispatchCompute(computeShader,
                     calculatePositionKernel,
-                    Mathf.CeilToInt((float)tileNumber.x / 8),
-                    Mathf.CeilToInt((float)tileNumber.y / 8),
+                    Mathf.CeilToInt( Mathf.Max( 1 , (float)tileNumber.x / 8) ),
+                    Mathf.CeilToInt( Mathf.Max( 1 , (float)tileNumber.y / 8) ),
                     1);
                 
                 cmd.CopyCounterValue(grassDataBuffer, argsBuffer, 1 * sizeof(uint));

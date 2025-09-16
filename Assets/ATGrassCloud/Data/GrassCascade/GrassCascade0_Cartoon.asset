@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8b32adf395595d44d89de82cf8c8903a, type: 3}
-  m_Name: GrassCascade0
+  m_Name: GrassCascade0_Cartoon
   m_EditorClassIdentifier: 
   isRender: 1
   cascadeName: Cascade0
