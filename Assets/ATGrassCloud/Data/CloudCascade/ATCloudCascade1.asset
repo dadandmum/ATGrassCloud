@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 73052a04f3543ff49955580df573639a, type: 3}
+  m_Name: ATCloudCascade1
+  m_EditorClassIdentifier: 
+  isRender: 0
+  cascadeName: Cloud_Cascade_1
+  cascadeLevel: 1
+  cascadeRange: {x: 100, y: 300}
+  cascadeInnerRange: 100
+  cascadeInnerFade: 10
+  cascadeOutterRange: 300
+  cascadeOutterFade: 25
+  snapDistance: 10
+  SDFGridSize: 10
+  cloudRenderMaterial: {fileID: 2100000, guid: 0c5cd64a45f2d414ba63debc1715c97d, type: 2}
+  updateMaterial: 1
+  cloudRenderData: {fileID: 11400000, guid: 456df8c5a6376a0478b9ada5c8e941be, type: 2}
+  cloudNoiseData: {fileID: 11400000, guid: 942a3cbfea7e87844b98ab0105dd34ae, type: 2}
+  debugCascade: 0
+  debugColor: {r: 1, g: 1, b: 1, a: 1}

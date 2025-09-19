@@ -3,7 +3,9 @@ guid: 57c60a8e54b76f044b6ff4f887d6002e
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - heightMapMat: {fileID: 2100000, guid: 40382e58bb275a94a91d8afbe6692a53, type: 2}
+  - computeShader: {fileID: 7200000, guid: 1e609a6395ccc154582fe1eb3328c85a, type: 3}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

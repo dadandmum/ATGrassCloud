@@ -123,7 +123,8 @@ namespace ATGrassCloud
             heightMapMat = new Material(mat);
         }
 
-        public void Init()
+        public void Init(CommandBuffer cmd, ref RenderingData renderingData)
+
         {
             int textureSize = data.GetTextureSize();
 
@@ -173,7 +174,7 @@ namespace ATGrassCloud
                 return;
             }
 
-            using (new ProfilingScope(cmd, new ProfilingSampler("HeightMap Cascade " + data.cascadeName)))
+            using (new ProfilingScope(cmd, new ProfilingSampler("[AT]HeightMap Cascade " + data.cascadeName)))
             {
 
                 Camera camera = Camera.main;
@@ -227,7 +228,7 @@ namespace ATGrassCloud
             }
 
 
-            using (new ProfilingScope(cmd, new ProfilingSampler("Calculate Grass Data " + data.cascadeName)))
+            using (new ProfilingScope(cmd, new ProfilingSampler("[AT] Calculate Grass Data " + data.cascadeName)))
             {
                 var camera = Camera.main;
                 if ( camera == null)

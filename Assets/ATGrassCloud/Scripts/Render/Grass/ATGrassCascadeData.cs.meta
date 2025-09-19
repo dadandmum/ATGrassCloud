@@ -3,7 +3,10 @@ guid: 8b32adf395595d44d89de82cf8c8903a
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - ProcedualMeshMaterial: {fileID: 2100000, guid: 3b14d1de8eb6c7c4cbee36508473c8c1, type: 2}
+  - MeshMaterial: {fileID: 2100000, guid: e5ecadc6bb0b8494fb2ff0aa2d52afb5, type: 2}
+  - Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

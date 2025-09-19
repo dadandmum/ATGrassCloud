@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 942ab7d1d13eda24fb965c82aebc428c, type: 3}
+  m_Name: ATCloudRenderData0
+  m_EditorClassIdentifier: 
+  cloudDensityMultiplier: 1
+  cloudDensityByDistance: 0.33
+  cloudDensityMax: 10
+  cloudVolumeOffset: 0.25
+  cloudDensityOffset: 0
+  detailNoiseScale: 0.5
+  detailNoiseMultiplier: 0.12
+  detailNoiseWeights: {x: 10, y: 2, z: 0.5, w: 1}
+  noiseSpeed: {x: 2, y: 0, z: 0}
+  MaxRaymarchSteps: 64
+  raymarchRange: 10
+  raymarchNoiseOffset: 0.5
+  blueNoise: {fileID: 2800000, guid: 7dc1d9550fc162d45ab7e013007e1a37, type: 3}

@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
+using UnityEngine.Rendering.Universal.Internal;
 
 namespace ATGrassCloud
 {
@@ -9,12 +10,15 @@ namespace ATGrassCloud
         [System.Serializable]
         public class ATHiZSettings
         {
-            public RenderPassEvent Event = RenderPassEvent.AfterRenderingPrePasses;
+            public RenderPassEvent hiZEvent = RenderPassEvent.AfterRenderingPrePasses;
+
+            public RenderPassEvent copyDepthEvent = RenderPassEvent.AfterRenderingOpaques;
+
             public int stopHiZlevel = 8;
             public bool useDepthPrePass = true;
             public bool useCustomDepthPass = true;
             public Shader hiZShader;
-
+            public Shader copyDepthShader;
             public LayerMask layerMask = ~0;
 
         }
@@ -22,6 +26,7 @@ namespace ATGrassCloud
         public ATHiZSettings settings = new ATHiZSettings();
 
         private HiZPass m_ScriptablePass;
+        private ATCopyDepthPass m_CopyDepthPass;
 
         public override void Create() 
         {
@@ -32,7 +37,10 @@ namespace ATGrassCloud
                 settings.useCustomDepthPass,
                 settings.layerMask);
 
-            m_ScriptablePass.renderPassEvent = settings.Event;
+            m_ScriptablePass.renderPassEvent = settings.hiZEvent;
+            m_CopyDepthPass = new ATCopyDepthPass(settings.copyDepthShader);
+            m_CopyDepthPass.renderPassEvent = settings.copyDepthEvent;
+
         }
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
@@ -40,6 +48,7 @@ namespace ATGrassCloud
             // if (renderingData.cameraData.cameraType == CameraType.Game)
             {
                 renderer.EnqueuePass(m_ScriptablePass);
+                renderer.EnqueuePass(m_CopyDepthPass);
             }
         }
 

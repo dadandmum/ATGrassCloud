@@ -18,7 +18,7 @@ namespace ATGrassCloud
 
         private Material m_UpdateMaterial;
         private CameraType m_CameraType = CameraType.Game;
-        private string m_ProfilerTag = "Wind Pre-Pass";
+        private string m_ProfilerTag = "[AT] Wind Pre-Pass";
 
 
         private WindData data;

@@ -54,7 +54,7 @@ namespace ATGrassCloud
         {
             CommandBuffer cmd = CommandBufferPool.Get();
 
-            using (new ProfilingScope(cmd, new ProfilingSampler("Grass Render")))
+            using (new ProfilingScope(cmd, new ProfilingSampler("[AT] Grass Render")))
             {
                 for (int i = 0; i < grassRenderPass.CascadesList.Count; i++)
                 {

@@ -104,7 +104,6 @@ half2 GetWind( float2 worldPosXZ , float4 windPositionParams )
     float2 uv = wind_PosXZ2UV(worldPosXZ, windPositionParams);
     float2 windEncode = SAMPLE_TEXTURE2D_LOD(_WindResultTex, sampler_WindResultTex, uv, 0);    
 
-
     return WindDecode(windEncode);
 }
 

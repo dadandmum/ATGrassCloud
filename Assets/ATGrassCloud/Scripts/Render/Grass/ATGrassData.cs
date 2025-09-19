@@ -5,7 +5,8 @@ using UnityEngine;
 
 namespace ATGrassCloud
 {
-    [CreateAssetMenu(fileName = "ATGrassData", menuName = "ATGrassCloud/Grass Data")]
+    [CreateAssetMenu(fileName = "ATGrassData", menuName = "ATGrassCloud/Grass Data" , order = 80)]
+
     public class ATGrassData : ScriptableObject
     {        
         public bool generateHeightMat;

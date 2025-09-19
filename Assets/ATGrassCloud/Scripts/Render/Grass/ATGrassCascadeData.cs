@@ -24,7 +24,8 @@ namespace ATGrassCloud
         I2048 = 4,
     }
 
-    [CreateAssetMenu(fileName = "New Grass Cascade Data", menuName = "ATGrassCloud/Grass Cascade Data")]
+    [CreateAssetMenu(fileName = "New Grass Cascade Data", menuName = "ATGrassCloud/Grass Cascade Data" , order = 80)]
+
     public class ATGrassCascadeData : ScriptableObject
     {
         [BoxGroup("Settings")]

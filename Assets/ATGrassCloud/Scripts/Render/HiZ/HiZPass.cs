@@ -1,8 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
-using Microsoft.SqlServer.Server;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
@@ -225,7 +223,8 @@ namespace ATGrassCloud
 
             CommandBuffer cmd = CommandBufferPool.Get();
 
-            using (new ProfilingScope(cmd, new ProfilingSampler("HiZPass")))
+
+            using (new ProfilingScope(cmd, new ProfilingSampler("[AT] HiZPass")))
             {
                 // how to detect if use prepass
 
