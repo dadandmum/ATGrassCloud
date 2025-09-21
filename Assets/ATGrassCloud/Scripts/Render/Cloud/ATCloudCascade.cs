@@ -140,10 +140,9 @@ namespace ATGrassCloud
                 
             }
 
-            // set up cloud noise 
-            if (cascadeData.cloudNoiseData != null )
+            if ( cascadeData.cloudNoiseData != null && cascadeData.cloudNoiseData.ShouldBeInited() )
             {
-                cascadeData.cloudNoiseData.UpdateNoise();
+                cascadeData.cloudNoiseData.GenerateNoise();
             }
 
         }

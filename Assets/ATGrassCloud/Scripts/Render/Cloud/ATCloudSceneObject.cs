@@ -2,6 +2,10 @@
 using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+using System.IO;
+#endif
 
 namespace ATGrassCloud
 {
@@ -10,6 +14,68 @@ namespace ATGrassCloud
     {
         [InlineEditor]
         public ATCloudObjectData data;
+
+        public static string path = "Assets/ATGrassCloud/Data/CloudObject/";
+
+        [Button]
+        public void GenerateNewCloudObject()
+        {
+#if UNITY_EDITOR
+            // Make sure the target directory exists
+            if (!AssetDatabase.IsValidFolder(path))
+            {
+                // Create the folder path if it doesn't exist
+                string[] folders = path.TrimEnd('/').Split('/');
+                string currentPath = "";
+                foreach (string folder in folders)
+                {
+                    currentPath = Path.Combine(currentPath, folder);
+                    if (!AssetDatabase.IsValidFolder(currentPath))
+                    {
+                        AssetDatabase.CreateFolder(currentPath == "Assets" ? "" : "Assets", folder);
+                    }
+                }
+            }
+
+            // Ensure the path ends with a slash for file creation
+            string assetPath = path;
+            if (!assetPath.EndsWith("/"))
+                assetPath += "/";
+
+            // Generate a unique filename (e.g., CloudObject_0.asset, CloudObject_1.asset, etc.)
+            string baseName = "CloudObjectData";
+            string fileName = baseName;
+            string fullAssetPath = assetPath + fileName + ".asset";
+            int index = 0;
+            while (AssetDatabase.LoadAssetAtPath<ATCloudObjectData>(fullAssetPath) != null)
+            {
+                fileName = baseName + "_" + index;
+                fullAssetPath = assetPath + fileName + ".asset";
+                index++;
+            }
+
+            // Create a new instance of ATCloudObjectData
+            ATCloudObjectData newCloudData = ScriptableObject.CreateInstance<ATCloudObjectData>();
+
+            // Save the new asset to the project
+            AssetDatabase.CreateAsset(newCloudData, fullAssetPath);
+
+            // Optional: Initialize default values here
+            // newCloudData.someProperty = defaultValue;
+
+            // Save changes to disk
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh(); // Ensure the asset is recognized
+
+            // Select and ping the asset in the Project window
+            EditorGUIUtility.PingObject(newCloudData);
+
+            // Assign the newly created asset to the public data field
+            data = newCloudData;
+
+            Debug.Log($"New Cloud Object created: {fullAssetPath}");
+#endif
+        }
 
         public ATCloudObjectBuffer GetObjectBuffer()
         {

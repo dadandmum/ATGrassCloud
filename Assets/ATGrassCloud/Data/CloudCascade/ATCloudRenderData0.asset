@@ -12,16 +12,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 942ab7d1d13eda24fb965c82aebc428c, type: 3}
   m_Name: ATCloudRenderData0
   m_EditorClassIdentifier: 
-  cloudDensityMultiplier: 1
-  cloudDensityByDistance: 0.33
-  cloudDensityMax: 10
-  cloudVolumeOffset: 0.25
-  cloudDensityOffset: 0
-  detailNoiseScale: 0.5
-  detailNoiseMultiplier: 0.12
-  detailNoiseWeights: {x: 10, y: 2, z: 0.5, w: 1}
-  noiseSpeed: {x: 2, y: 0, z: 0}
-  MaxRaymarchSteps: 64
-  raymarchRange: 10
-  raymarchNoiseOffset: 0.5
+  cloudDensityMultiplier: 0.12
+  cloudDensityByDistance: 2
+  cloudDensityMax: 4
+  cloudVolumeOffset: 0.39
+  cloudDensityOffset: 0.1
+  detailNoiseScale: -0.09
+  detailNoiseMultiplier: 2.85
+  detailShapeNoiseInfluence: 2.59
+  noiseOffset: -0.5
+  detailNoiseWeights: {x: 10, y: 1.5, z: 0.5, w: 1}
+  noiseSpeed: {x: 10, y: 0, z: 0}
+  MaxRaymarchSteps: 128
+  MaxLightmarchSteps: 8
+  raymarchRange: 64
+  lightmarchRange: 40
+  raymarchNoiseOffset: 5
+  brightness: 1
+  transmitThreshold: 0.5
+  inAbsorption: 0.328
+  outAbsorption: 0.05
+  forwardScatter: 0
+  backwardScatter: 0
+  scatterMultiplier: 1
   blueNoise: {fileID: 2800000, guid: 7dc1d9550fc162d45ab7e013007e1a37, type: 3}

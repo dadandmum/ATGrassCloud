@@ -29,12 +29,26 @@ float _CloudDensityOffset;
 float _MaxRaymarchSteps;
 float _RaymarchRange;
 float _RaymarchStep;
+float _MaxLightmarchSteps;
+float _LightmarchRange;
+float _LightmarchStep;
 float _RaymarchNoiseOffset;
 
 float _DetailNoiseScale;
 float _DetailNoiseMultiplier;
 float3 _DetailNoiseWeights;
 float3 _NoiseVelocity;
+float _ShapeNoiseInfluence;
+float _NoiseOffset;
+
+
+float _Brightness;
+float _TransmitThreshold;
+float _InAbsorption;
+float _OutAbsorption;
+float _ForwardScatter;
+float _BackwardScatter;
+float _ScatterMultiplier;
 
 StructuredBuffer<CloudObjectData> _CloudObjectBuffer;
 int _CloudObjectCount;
@@ -226,29 +240,33 @@ float SampleCloudObject( float3 posWS , float maxDistance )
     return distance;
 }
 
-float2 SampleDensityCloudObject( float3 posWS , float maxDistance )
+float3 SampleDensityCloudObject( float3 posWS , float maxDistance )
 {
     float distance = SampleCloudObject( posWS  , maxDistance );
     distance = max( -distance , 0.0 );
-    float density = _CloudVolumeOffset * ( min( _CloudDensityMax , distance * _CloudDensityByDistance )) ;
-    float fixedDensity = density +  _CloudDensityOffset * 0.05;
+    float pureDensity = distance * _CloudDensityByDistance;
+    float clampedDensity = _CloudVolumeOffset * ( min( _CloudDensityMax , distance * _CloudDensityByDistance )) ;
+    float finalDensity = clampedDensity +  _CloudDensityOffset * 0.05;
 
-    return float2( fixedDensity , density );
+    return float3( finalDensity , clampedDensity , pureDensity );
 }
 
 
-float SampleDensityWithNoise( float3 posWS  , float maxDistance , float4 cascadeRange )
+float SampleDensityWithNoise( float3 posWS  , float maxDistance , float cascadeFade  )
 {   
-    float2 cloudShapeDensity = SampleDensityCloudObject( posWS , maxDistance  );
+    float3 cloudDensityResult = SampleDensityCloudObject( posWS , maxDistance  );
 
     float time = _Time.y;
-    float3 noisePos = ( posWS + time * _NoiseVelocity) * exp( _DetailNoiseScale ) * 0.1f;
+    float3 noisePos = ( posWS + time * _NoiseVelocity) * _DetailNoiseScale * 0.05f;
 
     float4 noise = SAMPLE_TEXTURE3D_LOD( _NoiseTex , sampler_NoiseTex , noisePos , 0 );
-    float noiseFBM = dot(noise, normalize(_DetailNoiseWeights)) ;
+    float noiseFBM = dot(noise, normalize(_DetailNoiseWeights)) + _NoiseOffset;
 
-    float density = cloudShapeDensity.x - noiseFBM * pow( 1.0 - cloudShapeDensity.y , 3.0 ) * _DetailNoiseMultiplier;
-    
+    float cloudDensity = cloudDensityResult.x;
+    float cloudClampedDensity = cloudDensityResult.y;
+    float density = cloudDensity + noiseFBM * ( 1.0 - exp( - cloudClampedDensity * _ShapeNoiseInfluence  ))  * _DetailNoiseMultiplier;
+    density *= cascadeFade;
+
     density = max( density , 0.0 ); 
     return density * _CloudDensityMultiplier * 0.1;
 }
@@ -266,12 +284,48 @@ float GetBlueNoise( float2 uv )
     return noise;
 }
 
+float HenyeyGreenstein(float g, float angle) {
+    float gg = g * g;
+	return (1.0f - gg) / (4.0f * 3.14159 * pow(1 + gg - 2.0f * g * angle, 1.5f));
+}
 
-float4 cloud_Raymarch( float3 origin , float3 dir , float2 uv , float3 lighting, float startDistance , float maxDistance , float4 cascadeRange)
+float beer(float d) {
+    return exp(-d);
+}
+
+float hgScatter(float angle , float3 lightDir) {
+    
+    float scatterAverage = (HenyeyGreenstein(_ForwardScatter, angle) + HenyeyGreenstein(-_BackwardScatter, angle)) / 2.0f;
+    
+    // Scale the brightness by sun position
+    float sunPosModifier = 1.0;
+    if (lightDir.y < 0) {
+        sunPosModifier = pow(lightDir.y + 1,3);
+    }
+
+
+    return sunPosModifier + scatterAverage * _ScatterMultiplier;
+}
+
+float cloud_Lightmarch(float3 posWS , float3 lightDir, float maxDistance , float cascadeFade) {
+    float stepSize = _LightmarchStep;
+
+    float density = 0;
+
+    for (int i = 0; i < _MaxLightmarchSteps; i++) {
+        posWS += lightDir * stepSize;
+        density += max(0, SampleDensityCloudObject(posWS, maxDistance) * stepSize);
+    }
+
+    float transmit = beer(density * _OutAbsorption * 10.0);
+    return lerp(transmit, 1.0, _TransmitThreshold);
+}
+
+
+float4 cloud_Raymarch( float3 origin , float3 dir , float2 uv , float3 lighting, float3 lightDir, float startDistance , float maxDistance , float4 cascadeRange)
 {
     float distance = startDistance;
     float totalDensity = 0.0;
-    float4 color = float4( 0.0 , 0.0 , 0.0 , 0.0 ); 
     float noise = GetBlueNoise(uv + _Time.yy * 0.5);
     distance += ( noise - 0.5 ) * _RaymarchNoiseOffset;
 
@@ -279,32 +333,35 @@ float4 cloud_Raymarch( float3 origin , float3 dir , float2 uv , float3 lighting,
 
     float stepCount = min( _MaxRaymarchSteps , (int)(( maxDistance - startDistance ) / _RaymarchStep  ));
 
-    // if ( stepCount < _MaxRaymarchSteps * 0.25 )
-    // {
-    //     stepCount = _MaxRaymarchSteps * 0.25;
-    //     rayStep = ( maxDistance - startDistance ) / stepCount;
-    // }
+    float transmit = 1.0;
+    float3 illumination = float3( 0.0 , 0.0 , 0.0 );
+
+    float scatter = _Brightness * hgScatter( dot(lightDir, dir) , lightDir);
+
 
     for ( float i = 0 ; i < stepCount ; i++ )
     {
         float3 posWS = origin + dir * distance;
 
-        float density = SampleDensityWithNoise( posWS , maxDistance , cascadeRange);
         float cascadeFade = cloud_GetDistanceFade( posWS , origin , cascadeRange );
-        density *= cascadeFade;
+        float density = SampleDensityWithNoise( posWS , maxDistance , cascadeFade);
+        density *= rayStep;
 
-        totalDensity += density * rayStep;
-        color.rgb += lighting.rgb * density;
+        if ( density > 0.0 )
+        {
+            illumination += transmit * density * cloud_Lightmarch( posWS , lightDir, maxDistance , cascadeFade ) * scatter;
+            transmit *= beer(density * _InAbsorption * 10.0 );
+        }
         distance += rayStep;
     }
-
-    return float4( color.rgb , totalDensity );
+    // return float4( illumination.xxx , 1.0 );
+    return float4( illumination * lighting , 1.0 - transmit );
 }
 
 // With out cascade Range
-float4 cloud_RaymarchSim( float3 origin , float3 dir , float2 uv , float3 lighting, float startDistance , float maxDistance )
+float4 cloud_RaymarchSim( float3 origin , float3 dir , float2 uv , float3 lighting, float3 lightDir, float startDistance , float maxDistance )
 {
-    return cloud_Raymarch( origin , dir , uv , lighting, startDistance , maxDistance , float4( 0.0 , 99999.0 , 0.001 , 0.001 ));
+    return cloud_Raymarch( origin , dir , uv , lighting, lightDir, startDistance , maxDistance , float4( 0.0 , 99999.0 , 0.001 , 0.001 ));
 }
 
 

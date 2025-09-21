@@ -4,6 +4,7 @@
 #define kDielectricSpec half4(0.04, 0.04, 0.04, 1.0 - 0.04) 
          
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+#include "Assets/ATGrassCloud/Shader/Lib/ATGI.hlsl"
 // #define _SHADER_TIP_SPECULAR 1
 // #define _SHADER_PBR 1
 
@@ -89,10 +90,11 @@ float3 grass_Albedo( float3 colorA , float3 colorB , float rand , float3 colorAO
 
 
 float3 grass_AmbientDiffuse(
-    float3 albedo
+    float3 albedo,
+    float3 N
 )
 {
-    return (SampleSH(0) + 0.1) * albedo;
+    return (ATGI_SampleSH0(N) + 0.01) * albedo;
 }
 
 
@@ -293,7 +295,7 @@ float3 grass_Shading(
     float3 positionModel)
 {
     float3 result = float3(0,0,0);
-    float3 ambient = grass_AmbientDiffuse(albedo);
+    float3 ambient = grass_AmbientDiffuse(albedo, normalWS);
     result += ambient;
 
     Light mainLight = GetMainLight(TransformWorldToShadowCoord(positionWS));
@@ -330,7 +332,7 @@ float3 grass_ShadingPBR(
     float3 viewWS)
 {
     float3 result = float3(0,0,0);
-    float3 ambient = grass_AmbientDiffuse(albedo);
+    float3 ambient = grass_AmbientDiffuse(albedo, normalWS);
     result += ambient;
 
     Light mainLight = GetMainLight(TransformWorldToShadowCoord(positionWS));

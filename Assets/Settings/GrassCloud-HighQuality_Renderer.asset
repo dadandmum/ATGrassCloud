@@ -1,5 +1,21 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-7386046880197573149
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86fd82b7c258b4c4e8463b1c23e42406, type: 3}
+  m_Name: ATStaticGIRenderFeature
+  m_EditorClassIdentifier: 
+  m_Active: 1
+  m_Settings:
+    data: {fileID: 11400000, guid: c3ac7c2ee623fe8439fbb29658b252e0, type: 2}
+    Event: 150
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -20,7 +36,8 @@ MonoBehaviour:
   - {fileID: 2500325734344291707}
   - {fileID: 4189123199748170499}
   - {fileID: 739809016742618159}
-  m_RendererFeatureMap: 12dee39cdff6f0067bf55b1202f1b222036356f15ac1223a2f24938c6154440a
+  - {fileID: -7386046880197573149}
+  m_RendererFeatureMap: 12dee39cdff6f0067bf55b1202f1b222036356f15ac1223a2f24938c6154440ae30571d37e7d7f99
   m_UseNativeRenderPass: 0
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
   xrSystemData: {fileID: 11400000, guid: 60e1133243b97e347b653163a8c01b64, type: 2}

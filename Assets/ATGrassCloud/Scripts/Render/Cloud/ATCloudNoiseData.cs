@@ -5,7 +5,6 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
-using System.IO;
 
 namespace ATGrassCloud
 {
@@ -13,40 +12,50 @@ namespace ATGrassCloud
     public class NoiseSettings
     {
         public enum NoiseChannel { R, G, B, A }
-        // [OnValueChanged("OnUpdateSettings")]
-        // public int type;
+        [BoxGroup("Base")]
         [OnValueChanged("OnUpdateSettings")]
         [ReadOnly]
         public int texSize;
+        [BoxGroup("Base")]
+        [Title("Channel - R/G/B/A")]
         [OnValueChanged("OnUpdateSettings")]
         [ReadOnly]
-        public NoiseChannel channelDisplay;
+        public NoiseChannel channelName;
+        [BoxGroup("Base")]
         [OnValueChanged("OnUpdateSettings")]
         [OnValueChanged("OnUpdateChannel")]
         [ReadOnly]
-        public int channel;
+        public int channelID;
+        [BoxGroup("Parameters")]
         [OnValueChanged("OnUpdateSettings")]
         public int seed;
+        [BoxGroup("Parameters")]
         [OnValueChanged("OnUpdateSettings")]
         [Range(0,1.0f)]
         public float mix;
+        [BoxGroup("Parameters")]
         [OnValueChanged("OnUpdateSettings")]
         [Range(1,64)]
         public int frequencyA;
+        [BoxGroup("Parameters")]
         [OnValueChanged("OnUpdateSettings")]
         [Range(1,64)]
         public int frequencyB;
+        [BoxGroup("Parameters")]
         [OnValueChanged("OnUpdateSettings")]
         [Range(1,64)]
         public int frequencyC;
+        [BoxGroup("Display")]
         [OnValueChanged("OnUpdateSettings")]
         [Range(0, 1.0f)]
         public float zIndexRange;
 
+        [BoxGroup("Display")]
         [PreviewField(128)]
         [ReadOnly]
         public Texture2D noiseDisplay;
 
+        [HideInInspector]
         [ReadOnly]
         public  ATCloudNoiseData cloudNoiseData;
 
@@ -57,13 +66,13 @@ namespace ATGrassCloud
         
         public void OnUpdateChannel()
         {
-            channelDisplay = (NoiseChannel)channel;
+            channelName = (NoiseChannel)channelID;
         }
         public void Set(NoiseSettings settings)
         {
             texSize = settings.texSize;
-            channelDisplay = settings.channelDisplay;
-            channel = settings.channel;
+            channelName = settings.channelName;
+            channelID = settings.channelID;
             seed = settings.seed;
             mix = settings.mix;
             frequencyA = settings.frequencyA;
@@ -104,15 +113,13 @@ namespace ATGrassCloud
         [OnValueChanged("UpdateTexSize")]
         public int texSize = 64;
 
+        [BoxGroup("Output")]
         [ShowInInspector]
-        [ReadOnly]
         private RenderTexture noiseTexture;
 
-        static public string assetDataPath = "ATGrassCloud/Data";
-
+        [BoxGroup("Output")]
         [ShowInInspector]
-        [ReadOnly]
-        Texture3D noiseTextureExported;
+        private Texture3D noiseTextureExported;
 
         public Texture NoiseTex
         {
@@ -130,13 +137,17 @@ namespace ATGrassCloud
         {
         }
 
+        public bool ShouldBeInited()
+        {
+            return noiseTexture == null || noiseTexture.width != texSize || !isInited;
+        }
 
         public void UpdateSettings( NoiseSettings settings , bool updateDisplay = true )
         {
             UpdateNoise(settings);
             if (updateDisplay)
             {
-                settings.noiseDisplay = GetCrossSection(settings.channel, (int)(settings.zIndexRange * (texSize - 1)));
+                settings.noiseDisplay = GetCrossSectionByChannel(settings.channelID, (int)(settings.zIndexRange * (texSize - 1)));
             }
         }
 
@@ -152,7 +163,7 @@ namespace ATGrassCloud
 
                 noiseComputeShader.SetFloat("layerMix", settings.mix);
                 noiseComputeShader.SetInt("resolution", texSize);
-                noiseComputeShader.SetVector("channelMask", ChannelMask(settings.channel));
+                noiseComputeShader.SetVector("channelMask", ChannelMask(settings.channelID));
                 noiseComputeShader.SetTexture(KERNEL_NOISE_ID, "result", texture);
                 var limitsBuffer = SetBuffer(new int[] { int.MaxValue, 0 }, sizeof(int), "limits");
                 UpdateProperties(settings);
@@ -229,24 +240,16 @@ namespace ATGrassCloud
 
         public void UpdateChannel()
         {
-            lowNoiseSettings.channel = 0;
-            lowNoiseSettings.channelDisplay = NoiseSettings.NoiseChannel.R;
-            midNoiseSettings.channel = 1;
-            midNoiseSettings.channelDisplay = NoiseSettings.NoiseChannel.G;
-            highNoiseSettings.channel = 2;
-            highNoiseSettings.channelDisplay = NoiseSettings.NoiseChannel.B;
-            highestNoiseSettings.channel = 3;
-            highestNoiseSettings.channelDisplay = NoiseSettings.NoiseChannel.A;
+            lowNoiseSettings.channelID = 0;
+            lowNoiseSettings.channelName = NoiseSettings.NoiseChannel.R;
+            midNoiseSettings.channelID = 1;
+            midNoiseSettings.channelName = NoiseSettings.NoiseChannel.G;
+            highNoiseSettings.channelID = 2;
+            highNoiseSettings.channelName = NoiseSettings.NoiseChannel.B;
+            highestNoiseSettings.channelID = 3;
+            highestNoiseSettings.channelName = NoiseSettings.NoiseChannel.A;
         }
 
-        [Button("UpdateSeed")]
-        public void UpdateSeed()
-        {
-            lowNoiseSettings.seed = Random.Range(0, 100000);
-            midNoiseSettings.seed = Random.Range(0, 100000);
-            highNoiseSettings.seed = Random.Range(0, 100000);
-            highestNoiseSettings.seed = Random.Range(0, 100000);
-        }
 
         public void UpdateParent()
         {
@@ -266,7 +269,7 @@ namespace ATGrassCloud
         {
             isInited = false;
 
-            texSize = 64;
+            texSize = 128;
             InitTexture();
             UpdateParent();
             UpdateTexSize();
@@ -301,21 +304,39 @@ namespace ATGrassCloud
 
         }
 
-        [Button("UpdateNoise")]
-        public void UpdateNoise()
+        
+        [Button("UpdateSeed")]
+        public void UpdateSeed()
         {
-            InitTexture();
+            lowNoiseSettings.seed = Random.Range(0, 100000);
+            midNoiseSettings.seed = Random.Range(0, 100000);
+            highNoiseSettings.seed = Random.Range(0, 100000);
+            highestNoiseSettings.seed = Random.Range(0, 100000);
+        }
 
-            UpdateSettings(lowNoiseSettings, false);
-            UpdateSettings(midNoiseSettings, false);
-            UpdateSettings(highNoiseSettings, false);
-            UpdateSettings(highestNoiseSettings, false);
+        [Button("Generate Noise By Parameters", ButtonSizes.Large)]
+        
+        public void GenerateNoise()
+        {
+            isInited = false;
+            InitTexture();
+            UpdateParent();
+            UpdateTexSize();
+            UpdateChannel();
+            isInited = true;
+
+            UpdateSettings(lowNoiseSettings);
+            UpdateSettings(midNoiseSettings);
+            UpdateSettings(highNoiseSettings);
+            UpdateSettings(highestNoiseSettings);
+
+            Debug.Log("Finish Generate Noise: size " + texSize );
         }
 
         [Button("ExportNoise")]
         public void ExportNoise()
         {
-            UpdateNoise();
+            GenerateNoise();
 
             Texture3D texture3D = CreateTexture3DFrom3DRenderTexture(noiseTexture);
 
@@ -333,7 +354,7 @@ namespace ATGrassCloud
             // create directory if not exist
             // get path of data 
             string exportPath = UnityEditor.AssetDatabase.GetAssetPath(this);
-            exportPath = exportPath.Replace(name, $"{name}_Exp");
+            exportPath = exportPath.Replace(name, $"{name}_Output");
 
             Debug.Log("Export Path is " + exportPath);
 
@@ -342,66 +363,89 @@ namespace ATGrassCloud
             UnityEditor.AssetDatabase.SaveAssets();
             UnityEditor.AssetDatabase.Refresh();
 #endif 
+            noiseTextureExported = texture3D;
 
         }
 
-
+        /// <summary>
+        /// Creates a CPU-readable Texture3D from a 3D RenderTexture by copying its data layer by layer.
+        /// This is useful when you need to access texture data on the CPU (e.g., for saving, analysis, or post-processing).
+        /// </summary>
+        /// <param name="rt">The source 3D RenderTexture to convert.</param>
+        /// <returns>A new Texture3D with the same dimensions and data as the input RenderTexture, or null if invalid.</returns>
         private Texture3D CreateTexture3DFrom3DRenderTexture(RenderTexture rt)
         {
+            // Validate that the input RenderTexture is actually a 3D texture
             if (rt.dimension != UnityEngine.Rendering.TextureDimension.Tex3D)
             {
                 Debug.LogError("RenderTexture must be 3D.");
                 return null;
             }
 
-            // 创建 RenderTexture 的副本以读取数据
-            RenderTexture tempRT = new RenderTexture(rt.width, rt.height, rt.depth, rt.graphicsFormat);
-            tempRT.volumeDepth = rt.volumeDepth;
-            Debug.Log("Volume " + tempRT.volumeDepth);
-            tempRT.enableRandomWrite = true;
-            tempRT.dimension = UnityEngine.Rendering.TextureDimension.Tex3D;
-            tempRT.enableRandomWrite = true; // 可能需要，取决于原始 RT
-            
-            tempRT.Create();
+            // Extract texture dimensions and format from the source RenderTexture
+            int width = rt.width;
+            int height = rt.height;
+            int depth = rt.volumeDepth;
+            GraphicsFormat format = rt.graphicsFormat;
 
-            // 复制内容
+            // Create a temporary 3D RenderTexture to safely copy and read from
+            RenderTexture tempRT = new RenderTexture(rt.width, rt.height, rt.depth, rt.graphicsFormat);
+            tempRT.volumeDepth = rt.volumeDepth; // Ensure depth is properly set for 3D textures
+            Debug.Log("Volume depth: " + tempRT.volumeDepth);
+            tempRT.enableRandomWrite = true; // Enable GPU random write access if needed
+            tempRT.dimension = UnityEngine.Rendering.TextureDimension.Tex3D; // Explicitly set dimension
+            tempRT.filterMode = FilterMode.Point; // Use point filtering to avoid interpolation
+            tempRT.Create(); // Allocate GPU memory
+
+            // Copy the contents of the original RenderTexture to the temporary one
             Graphics.CopyTexture(rt, tempRT);
 
-            // 创建 CPU 可读的 Texture3D
-            Texture3D texture3D = new Texture3D(rt.width, rt.height, rt.volumeDepth, rt.graphicsFormat, TextureCreationFlags.None);
+            // Create a CPU-accessible Texture3D with the same properties
+            Texture3D texture3D = new Texture3D(width, height, depth, format, TextureCreationFlags.None);
 
-            // 逐层读取数据
+            // Array to hold all pixel data from the 3D texture (flattened into 1D)
+            Color[] allPixels = new Color[width * height * depth];
+
+            // Store currently active RenderTexture so we can restore it later
+            RenderTexture activeRT = RenderTexture.active;
+
+            // Set the temporary 3D texture as active for reading
             RenderTexture.active = tempRT;
-            for (int z = 0; z < rt.volumeDepth; z++)
+
+            // Loop through each depth slice (z-layer) of the 3D texture
+            for (int z = 0; z < depth; z++)
             {
-                // 创建临时 2D RenderTexture 来读取当前切片
-                RenderTexture sliceRT = RenderTexture.GetTemporary(rt.width, rt.height, 0, rt.graphicsFormat);
-                Graphics.CopyTexture(tempRT, z * rt.width * rt.height, 0, sliceRT, 0 , 0); // 复制第 0 个 mip，第 0 个 slice (z) 到临时 RT
+                // Get the 2D texture representing the cross-section at depth z
+                var texture = GetCrossSectionTexture(z);
+                
+                if (texture != null)
+                {
+                    // Read all pixels from the current layer
+                    var pixels = texture.GetPixels();
+                    int depthOffset = z * width * height; // Calculate starting index for this layer
 
-                // 读取像素数据
-                Texture2D tempTex = new Texture2D(rt.width, rt.height, rt.graphicsFormat, TextureCreationFlags.None);
-                tempTex.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
-                tempTex.Apply();
-
-                Color[] pixels = tempTex.GetPixels();
-
-                // 将像素数据设置到 Texture3D 的对应深度层
-                texture3D.SetPixels(pixels, z);
-
-                // 清理临时资源
-                DestroyImmediate(tempTex);
-                RenderTexture.ReleaseTemporary(sliceRT);
+                    // Copy pixels from current layer into the correct position in the full 3D pixel array
+                    for (int i = 0; i < pixels.Length; i++)
+                    {
+                        allPixels[depthOffset + i] = pixels[i];
+                    }
+                }
             }
 
-            RenderTexture.active = null;
-            texture3D.Apply();
+            // Restore previously active RenderTexture
+            RenderTexture.active = activeRT;
 
-            // 销毁临时 RenderTexture
+            // Apply the pixel data to the Texture3D
+            texture3D.SetPixels(allPixels);
+            texture3D.Apply(); // Upload data to GPU
+
+            // Clean up temporary GPU resources
             tempRT.Release();
+            // Note: temp2DRT is created but not used in this code path — consider releasing it too
+            // if it's used elsewhere or remove it if unnecessary.
 
             return texture3D;
         }
-
 
 
         RenderTexture CreateTexture(int size)
@@ -413,12 +457,15 @@ namespace ATGrassCloud
             output.enableRandomWrite = true;
             output.dimension = TextureDimension.Tex3D;
             output.graphicsFormat = GraphicsFormat.R16G16B16A16_UNorm;
+            output.name = "CloudNoise3D";
             output.Create();
+
+            
             return output;
         }
 
-
-        public Texture2D GetCrossSection( int channel, int zIndex) {
+        public RenderTexture GetCrossSectionRT( int zIndex)
+        {
             RenderTexture _noiseTexture = noiseTexture;
             int size = _noiseTexture.width;
         
@@ -427,13 +474,24 @@ namespace ATGrassCloud
 
             crossSection.dimension = UnityEngine.Rendering.TextureDimension.Tex2D;
             crossSection.enableRandomWrite = true;
+            crossSection.filterMode = FilterMode.Point;
             crossSection.Create();
 
             noiseComputeShader.SetTexture(KERNEL_CROSS_SECTION_ID, "crossSection", crossSection);
             noiseComputeShader.SetInt("zIndex", zIndex);
             int numThreadGroups = Mathf.CeilToInt(size / 32f);
             noiseComputeShader.Dispatch(KERNEL_CROSS_SECTION_ID, numThreadGroups, numThreadGroups, 1);
+            return crossSection;
+        }
 
+        public Texture2D GetCrossSectionTexture( int zIndex) {
+            var crossSection = GetCrossSectionRT(zIndex);
+            return ToTexture2D(crossSection);
+        }
+
+
+        public Texture2D GetCrossSectionByChannel( int channel, int zIndex) {
+            var crossSection = GetCrossSectionRT(zIndex);
             return GetChannelTexture(ToTexture2D(crossSection), channel);
         }
 

@@ -336,6 +336,9 @@ namespace ATGrassCloud
             }
 
             Camera camera = Camera.main;
+            if (camera == null)
+                return;
+
             Bounds cameraBounds = GrassPrePass.CalculateCameraBounds(camera, data.GetMaxDistance());
             var mapData = GrassPrePass.GetDrawTopDownTextureData(cameraBounds , data.GetMaxDistance() , data.GetSnapDistance());
 
@@ -375,6 +378,8 @@ namespace ATGrassCloud
             }
 
             Camera camera = Camera.main;
+            if (camera == null)
+                return;
             Bounds cameraBounds = GrassPrePass.CalculateCameraBounds(camera, data.GetMaxDistance());
             var mapData = GrassPrePass.GetDrawTopDownTextureData(cameraBounds , data.GetMaxDistance() , data.GetSnapDistance());
 

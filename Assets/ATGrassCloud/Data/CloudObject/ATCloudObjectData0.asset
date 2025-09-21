@@ -16,6 +16,6 @@ MonoBehaviour:
   objectType: 1
   basicObjectType: 1
   boundingSphereScale: 1
-  radius: 5
+  radius: 50
   length: 0
   drawBoundingSphere: 1

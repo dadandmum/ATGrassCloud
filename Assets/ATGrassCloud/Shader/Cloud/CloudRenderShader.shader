@@ -92,7 +92,9 @@
                 float maxDistance = min(maxCascadeDis, depthDistance);
 
                 float3 camPos = _WorldSpaceCameraPos;
-                float3 lighting = GetMainLight().color;
+                Light mainLight = GetMainLight();
+                float3 lighting = mainLight.color;
+                float3 lightDir = mainLight.direction;
                 // float depth = LOAD_TEXTURE2D_MSAA(_CameraDepthAttachment, uv , 0 ).r;
                 // float worldDistance = depth_Depth2WorldDistance(depth);
                 // return half4( worldDistance, 0, 0, 1);
@@ -102,7 +104,7 @@
                 float3 color = float3(0,0,0);
                 if ( startDistance < maxDistance - 0.01f  )
                 {
-                    float4 raymarchResult = cloud_Raymarch( camPos, viewDir, uv, lighting, startDistance, maxDistance , cascadeRange);
+                    float4 raymarchResult = cloud_Raymarch( camPos, viewDir, uv, lighting, lightDir, startDistance, maxDistance , cascadeRange);
                     color = raymarchResult.rgb;
                     alpha = raymarchResult.w;
                 }

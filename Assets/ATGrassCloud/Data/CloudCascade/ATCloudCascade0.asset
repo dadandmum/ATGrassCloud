@@ -15,11 +15,11 @@ MonoBehaviour:
   isRender: 1
   cascadeName: Cloud_Cascade_0
   cascadeLevel: 0
-  cascadeRange: {x: 0, y: 100}
+  cascadeRange: {x: 0, y: 300}
   cascadeInnerRange: 0
   cascadeInnerFade: 0
-  cascadeOutterRange: 100
-  cascadeOutterFade: 50
+  cascadeOutterRange: 300
+  cascadeOutterFade: 100
   snapDistance: 10
   SDFGridSize: 2
   cloudRenderMaterial: {fileID: 2100000, guid: 0c5cd64a45f2d414ba63debc1715c97d, type: 2}

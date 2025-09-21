@@ -15,7 +15,7 @@ MonoBehaviour:
   objectName: CloudObject
   objectType: 1
   basicObjectType: 2
-  boundingSphereScale: 2
-  radius: 5
-  length: 5.39
+  boundingSphereScale: 2.01
+  radius: 27.4
+  length: 17.26
   drawBoundingSphere: 1
