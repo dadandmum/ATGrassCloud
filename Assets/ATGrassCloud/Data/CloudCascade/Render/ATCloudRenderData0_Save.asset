@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 942ab7d1d13eda24fb965c82aebc428c, type: 3}
+  m_Name: ATCloudRenderData0_Save
+  m_EditorClassIdentifier: 
+  cloudDensityMultiplier: 0.33
+  cloudDensityByDistance: 2
+  cloudDensityMax: 4
+  cloudVolumeOffset: 10
+  cloudDensityOffset: 0.2
+  detailNoiseScale: -0.25
+  detailNoiseMultiplier: 3.5
+  detailShapeNoiseInfluence: 2.59
+  noiseOffset: -0.6
+  detailNoiseWeights: {x: 10, y: 1.5, z: 0.5, w: 1}
+  noiseSpeed: {x: 10, y: 0, z: 0}
+  MaxRaymarchStepCount: 64
+  MaxLightmarchStepCount: 16
+  MaxMultipleScatteringSteps: 2
+  MaxMultipleScatteringSampleCount: 4
+  ScatterDirs:
+  - {x: -0.18097664, y: 0.63590676, z: -0.75024664, w: 0}
+  - {x: -0.3063847, y: -0.56605715, z: -0.7653154, w: 0}
+  - {x: 0.5001076, y: 0.29634216, z: -0.8136791, w: 0}
+  - {x: -0.20708734, y: 0.35905468, z: -0.91005194, w: 0}
+  - {x: 0.49520862, y: -0.67040366, z: -0.5525643, w: 0}
+  - {x: -0.55667484, y: 0.5950026, z: -0.57972836, w: 0}
+  - {x: -0.51211303, y: -0.4443344, z: -0.7350559, w: 0}
+  - {x: -0.324334, y: -0.62434375, z: -0.7106352, w: 0}
+  - {x: 0.601993, y: -0.4203573, z: -0.6788992, w: 0}
+  raymarchRange: 64
+  lightmarchRange: 40
+  multipleScatteringRange: 40
+  raymarchNoiseOffset: 5
+  brightness: 0.8
+  transmitThreshold: 0.15
+  inBeerAbsorption: 0.342
+  outBeerAbsorption: 0.097
+  powderAbsorption: 0.611
+  forwardScatter: 0.045
+  backwardScatter: 0.157
+  HGScatterMultiplier: 0.8
+  MultipleScatterMultiplier: 0.447
+  blueNoise: {fileID: 2800000, guid: 7dc1d9550fc162d45ab7e013007e1a37, type: 3}

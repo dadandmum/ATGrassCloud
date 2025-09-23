@@ -46,4 +46,9 @@ float3 ATGI_SampleSH0( float3 dir )
 }
 
 
+float3 ATGI_SampleSHbyPosWS( float3 posWS , float3 dir )
+{
+    return ATGI_SampleSH0( dir );
+}
+
 #endif 

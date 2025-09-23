@@ -98,7 +98,7 @@ Material:
     - _AlphaToMask: 0
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
-    - _BlendPower: 2.33
+    - _BlendPower: 2.81
     - _BumpScale: 1
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
@@ -118,7 +118,7 @@ Material:
     - _Parallax: 0.005
     - _QueueOffset: 0
     - _ReceiveShadows: 1
-    - _SkyIntensity: 2
+    - _SkyIntensity: 3.03
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
@@ -131,7 +131,7 @@ Material:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _GroundColor: {r: 0.4408245, g: 0.72955966, b: 0.43360615, a: 1}
-    - _SkyColor: {r: 0.42452818, g: 0.64729154, b: 1, a: 1}
+    - _GroundColor: {r: 0.28590634, g: 0.5668395, b: 0.654088, a: 1}
+    - _SkyColor: {r: 0, g: 0.34925014, b: 0.8930817, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []

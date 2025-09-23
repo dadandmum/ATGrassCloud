@@ -50,14 +50,195 @@ float3 normalizeF3(float3 f)
 
 //===========SDF Function============
 
-			//sphere
-float sdSphere(float3 p, float r)
+//sphere
+float sdSphere(float3 posOS , float radius)
 {
-    return length(p) - r;
+    return length(posOS) - radius;
+}
+
+
+//box
+float sdBox(float3 posOS, float len)
+{
+    float3 q = abs(posOS) - len * 0.5;
+    return length(max(q, 0)) + min(max(q.x, max(q.y, q.z)), 0);
 }
 
 
 
+// ============== SDF Detect Distance =======
+
+/// @brief Intersect a ray with a sphere centered at the origin in object space.
+/// @param posOS     Ray origin in object space.
+/// @param viewOS    Ray direction in object space (does not need to be normalized).
+/// @param radius    Radius of the sphere (assumed centered at origin).
+/// @return          The closest intersection point in object space, 
+///                  or float3(MAXFLOAT) if no intersection.
+float3 rayIntersectSphere(float3 posOS, float3 viewOS, float radius)
+{
+    // Ensure ray direction is meaningful
+    float3 rayDir = normalize(viewOS);
+
+    // Sphere is centered at origin (0,0,0) in object space
+    float3 center = float3(0.0f, 0.0f, 0.0f);
+    float3 L = posOS - center; // Vector from center to ray origin
+
+    // Quadratic equation coefficients for: |o + t*d|^2 = r^2
+    // Expanded: t^2*(d·d) + 2t*(d·L) + (L·L - r^2) = 0
+    float a = dot(rayDir, rayDir); // = 1.0 if rayDir is normalized
+    float b = 2.0f * dot(rayDir, L);
+    float c = dot(L, L) - radius * radius;
+
+    float discr = b * b - 4.0f * a * c; // Discriminant
+
+    // No intersection if discriminant is negative
+    if (discr < 0.0f)
+    {
+        return float3(1e30, 1e30, 1e30); // No hit
+    }
+
+    // Closest intersection distance
+    float sqrtDiscr = sqrt(discr);
+    float t1 = (-b - sqrtDiscr) / (2.0f * a);
+    float t2 = (-b + sqrtDiscr) / (2.0f * a);
+
+    // We want the closest **positive** intersection
+    float t = 1e30;
+    if (t1 >= 0.0f) t = t1;
+    else if (t2 >= 0.0f) t = t2;
+
+    // If both t1 and t2 are negative, the ray is inside or pointing away
+    if (t == 1e30)
+    {
+        return float3(1e30, 1e30, 1e30); // No valid forward intersection
+    }
+
+    // Compute intersection point in object space
+    float3 hitPoint = posOS + t * rayDir;
+
+    return hitPoint;
+}
+
+/// @brief Intersect a ray with a cube centered at origin using explicit math.
+/// @param posOS     Ray origin in object space: \vec{o}
+/// @param viewOS    Ray direction in object space: \vec{d} (not necessarily normalized)
+/// @param len       Side length of the cube (cube spans [-len/2, len/2] on each axis)
+/// @return          Closest intersection point in object space, or (MAXFLOAT) if no hit.
+///
+/// Math Background:
+/// ----------------
+/// The cube is defined as the intersection of 6 planes (a 3D interval):
+///   x ∈ [c_x - s/2, c_x + s/2],  y ∈ [c_y - s/2, c_y + s/2],  z ∈ [c_z - s/2, c_z + s/2]
+/// Since it's centered at origin: c = (0,0,0), so bounds are [-L, L] where L = len/2.
+///
+/// A ray is defined as: R(t) = o + t * d,  t ≥ 0
+///
+/// For each axis (x, y, z), we compute the values of t where the ray enters and exits
+/// the "slab" (the region between two parallel planes). The intersection occurs only
+/// where all three slabs overlap and t ≥ 0.
+///
+/// For axis k (e.g. x), the two planes are at:
+///   p_min = -L,   p_max = +L
+///
+/// Solve for t:
+///   o_k + t * d_k = p_min  →  t_min_k = (p_min - o_k) / d_k
+///   o_k + t * d_k = p_max  →  t_max_k = (p_max - o_k) / d_k
+///
+/// But since d_k can be negative, t_min_k might be > t_max_k.
+/// So we define:
+///   t1_k = min(t_min_k, t_max_k)  → entry time for axis k
+///   t2_k = max(t_min_k, t_max_k)  → exit time for axis k
+///
+/// The ray is inside the box when t ∈ [max(t1_x, t1_y, t1_z), min(t2_x, t2_y, t2_z)]
+/// Let:
+///   tEnter = max(t1_x, t1_y, t1_z)
+///   tExit  = min(t2_x, t2_y, t2_z)
+///
+/// Intersection exists if: tEnter ≤ tExit AND tExit ≥ 0
+/// The first hit is at t = tEnter if tEnter ≥ 0, otherwise at tExit (ray starts inside).
+///
+float3 rayIntersectBox(float3 posOS, float3 viewOS, float len)
+{
+    // ——————————————————————————————
+    // Step 1: Define cube bounds
+    // ——————————————————————————————
+    float L = len * 0.5f; // Half-length: box spans [-L, L] on each axis
+    float3 minBound = float3(-L, -L, -L); // Minimum corner
+    float3 maxBound = float3( L,  L,  L); // Maximum corner
+
+    // ——————————————————————————————
+    // Step 2: Precompute inverse direction to avoid division in loop
+    // ——————————————————————————————
+    // We'll compute t = (plane_pos - o) / d  → same as (plane_pos - o) * (1/d)
+    float3 invDir = float3(1.0f / viewOS.x, 1.0f / viewOS.y, 1.0f / viewOS.z);
+
+    // ——————————————————————————————
+    // Step 3: Compute intersection with each "slab" (axis-aligned pair of planes)
+    // ——————————————————————————————
+    // For each axis, compute t values where ray enters and exits the slab
+
+    // X-axis slab: from x = -L to x = +L
+    float t_min_x = (minBound.x - posOS.x) * invDir.x; // t when ray hits x = -L
+    float t_max_x = (maxBound.x - posOS.x) * invDir.x; // t when ray hits x = +L
+
+    // Ensure t1 ≤ t2 for X
+    float t1_x = min(t_min_x, t_max_x);
+    float t2_x = max(t_min_x, t_max_x);
+
+    // Y-axis slab: from y = -L to y = +L
+    float t_min_y = (minBound.y - posOS.y) * invDir.y; // t when ray hits y = -L
+    float t_max_y = (maxBound.y - posOS.y) * invDir.y; // t when ray hits y = +L
+
+    float t1_y = min(t_min_y, t_max_y);
+    float t2_y = max(t_min_y, t_max_y);
+
+    // Z-axis slab: from z = -L to z = +L
+    float t_min_z = (minBound.z - posOS.z) * invDir.z; // t when ray hits z = -L
+    float t_max_z = (maxBound.z - posOS.z) * invDir.z; // t when ray hits z = +L
+
+    float t1_z = min(t_min_z, t_max_z);
+    float t2_z = max(t_min_z, t_max_z);
+
+    // ——————————————————————————————
+    // Step 4: Find overlapping interval
+    // ——————————————————————————————
+    // Ray is inside box when t ∈ [tEnter, tExit]
+    float tEnter = max(max(t1_x, t1_y), t1_z); // Latest entry time
+    float tExit  = min(min(t2_x, t2_y), t2_z); // Earliest exit time
+
+    // ——————————————————————————————
+    // Step 5: Check for valid intersection
+    // ——————————————————————————————
+    // Valid if:
+    //   - The entry happens before exit: tEnter <= tExit
+    //   - The exit is in front of ray origin: tExit >= 0
+    if (tEnter <= tExit && tExit >= 0.0f)
+    {
+        // Choose hit distance:
+        // - If tEnter >= 0, ray hits from outside → use tEnter
+        // - If tEnter < 0, ray starts inside box → use tExit (first surface it leaves)
+        float tHit = (tEnter >= 0.0f) ? tEnter : tExit;
+
+        // Compute hit point: P = origin + t * direction
+        float3 hitPoint;
+        hitPoint.x = posOS.x + tHit * viewOS.x;
+        hitPoint.y = posOS.y + tHit * viewOS.y;
+        hitPoint.z = posOS.z + tHit * viewOS.z;
+
+        return hitPoint;
+    }
+
+    // ——————————————————————————————
+    // No intersection
+    // ——————————————————————————————
+    return float3(1e30, 1e30, 1e30);
+}
+
+
+
+
+
+// ========= Appendix =====================
 //torus
 float sdTorus(float3 p, float2 s)
 {
@@ -74,7 +255,7 @@ float sdCappedTorus(float3 p, float ro, float ri, float2 t)
     return sqrt(dot(p, p) + ro * ro - 2 * ro * x) - ri;
 }
 
-			//link
+//link
 float sdLink(float3 p, float s, float ro, float ri)
 {
     float3 q = float3(p.x, max(abs(p.y) - s, 0), p.z);
@@ -144,12 +325,6 @@ float sdInfiniteCylinder(float3 p, float3 c)
 }
 
 
-//box
-float sdBox(float3 p, float s)
-{
-    float3 q = abs(p) - s;
-    return length(max(q, 0)) + min(max(q.x, max(q.y, q.z)), 0);
-}
 
 //round box 
 float sdRoundBox(float3 p, float s, float t)

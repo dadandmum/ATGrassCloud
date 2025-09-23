@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e22cb1fddb801744b1711fa27837c63, type: 3}
+  m_Name: ATCloudNoiseData1
+  m_EditorClassIdentifier: 
+  lowNoiseSettings:
+    texSize: 256
+    channelName: 0
+    channelID: 0
+    seed: 52317
+    mix: 1
+    frequencyA: 3
+    frequencyB: 4
+    frequencyC: 5
+    zIndexRange: 0.583
+    noiseDisplay: {fileID: 0}
+    cloudNoiseData: {fileID: 11400000}
+  midNoiseSettings:
+    texSize: 256
+    channelName: 1
+    channelID: 1
+    seed: 99361
+    mix: 1
+    frequencyA: 3
+    frequencyB: 6
+    frequencyC: 8
+    zIndexRange: 0.021
+    noiseDisplay: {fileID: 0}
+    cloudNoiseData: {fileID: 11400000}
+  highNoiseSettings:
+    texSize: 256
+    channelName: 2
+    channelID: 2
+    seed: 90843
+    mix: 0.675
+    frequencyA: 27
+    frequencyB: 29
+    frequencyC: 34
+    zIndexRange: 0
+    noiseDisplay: {fileID: 0}
+    cloudNoiseData: {fileID: 11400000}
+  highestNoiseSettings:
+    texSize: 256
+    channelName: 3
+    channelID: 3
+    seed: 93609
+    mix: 0.8407527
+    frequencyA: 49
+    frequencyB: 56
+    frequencyC: 58
+    zIndexRange: 0
+    noiseDisplay: {fileID: 0}
+    cloudNoiseData: {fileID: 11400000}
+  noiseComputeShader: {fileID: 7200000, guid: f3dbd6590c9406142b736b285b124a8a, type: 3}
+  texSize: 256

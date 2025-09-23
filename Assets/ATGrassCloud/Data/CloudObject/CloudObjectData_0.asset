@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   objectName: CloudObject
   objectType: 1
-  basicObjectType: 1
-  boundingSphereScale: 1
+  basicObjectType: 2
+  boundingSphereScale: 1.6
   radius: 25
-  length: 0
+  length: 40.92
   drawBoundingSphere: 1

@@ -24,7 +24,7 @@ MonoBehaviour:
   SDFGridSize: 2
   cloudRenderMaterial: {fileID: 2100000, guid: 0c5cd64a45f2d414ba63debc1715c97d, type: 2}
   updateMaterial: 1
-  cloudRenderData: {fileID: 11400000, guid: 456df8c5a6376a0478b9ada5c8e941be, type: 2}
+  cloudRenderData: {fileID: 11400000, guid: 0edc30fcebfc4b449b0cf80b8d8d5f90, type: 2}
   cloudNoiseData: {fileID: 11400000, guid: 942a3cbfea7e87844b98ab0105dd34ae, type: 2}
   debugCascade: 0
   debugColor: {r: 1, g: 1, b: 1, a: 1}

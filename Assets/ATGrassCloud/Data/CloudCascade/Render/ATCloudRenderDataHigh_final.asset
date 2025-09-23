@@ -1,0 +1,87 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 942ab7d1d13eda24fb965c82aebc428c, type: 3}
+  m_Name: ATCloudRenderDataHigh_final
+  m_EditorClassIdentifier: 
+  cloudDensityMultiplier: 1
+  cloudDensityByDistance: 1
+  cloudDensityMax: 2
+  cloudDensityScaleRate: 30
+  cloudDensityOffset: 0.01
+  detailNoiseScale: 0.445
+  detailNoiseSize: 34.665062
+  detailNoiseMultiplier: 3.9
+  detailShapeNoiseInfluenceExtend: 0.59
+  detailShapeNoiseInfluenceFade: 2.34
+  noiseOffset: -0.5
+  detailNoiseWeights: {x: 10, y: 2, z: 0.5, w: 1}
+  noiseSpeed: {x: 10, y: 0, z: 0}
+  MaxRaymarchStepCount: 32
+  raymarchRange: 8.27
+  raymarchStep: 0.2584375
+  raymarchNoiseOffset: 0.49
+  blueNoise: {fileID: 2800000, guid: 7dc1d9550fc162d45ab7e013007e1a37, type: 3}
+  MaxLightmarchStepCount: 16
+  lightmarchRange: 32
+  lightmarchStep: 2
+  enableShortLightmarch: 1
+  MaxShortLightmarchStepCount: 8
+  shortLightmarchRange: 1.5
+  shortLightmarchStep: 0.1875
+  enableMultipleScattering: 1
+  MaxMultipleScatteringSteps: 3
+  MaxMultipleScatteringSampleCount: 2
+  multipleScatteringRange: 1.5
+  multipleScatteringStep: 0.5
+  ScatterDirs:
+  - {x: -0.87575173, y: -0.04119297, z: -0.48100108, w: 0}
+  - {x: 0.82399285, y: 0.07306577, z: -0.5618693, w: 0}
+  - {x: 0.8355841, y: 0.38424116, z: -0.39262953, w: 0}
+  - {x: -0.30419597, y: 0.47344512, z: -0.8266284, w: 0}
+  - {x: 0.8560921, y: -0.21789983, z: -0.46864265, w: 0}
+  - {x: -0.43182656, y: 0.3023562, z: -0.8497685, w: 0}
+  - {x: -0.31962472, y: 0.44122013, z: -0.8385492, w: 0}
+  - {x: 0.14509329, y: -0.36110944, z: -0.9211666, w: 0}
+  - {x: -0.20811972, y: 0.657773, z: -0.72389287, w: 0}
+  - {x: 0.35263523, y: 0.40038, z: -0.84578025, w: 0}
+  - {x: -0.13733146, y: 0.19747081, z: -0.97064173, w: 0}
+  - {x: -0.1500937, y: -0.21658435, z: -0.964657, w: 0}
+  - {x: -0.69802016, y: -0.19882064, z: -0.68792313, w: 0}
+  - {x: 0.9493713, y: 0.18815531, z: -0.25157842, w: 0}
+  - {x: 0.02728226, y: -0.60445356, z: -0.7961731, w: 0}
+  - {x: -0.58504224, y: 0.7106264, z: -0.39081413, w: 0}
+  - {x: 0.1318496, y: 0.5321444, z: -0.8363241, w: 0}
+  - {x: -0.74500936, y: -0.51172704, z: -0.42789772, w: 0}
+  - {x: -0.2928367, y: -0.6676363, z: -0.68447673, w: 0}
+  - {x: -0.23995826, y: -0.89000744, z: -0.3876941, w: 0}
+  overallBrightness: 0.343
+  directLightingIntensity: 0.324
+  shortLightingIntensity: 0.2
+  multipleScatterIntensity: 0.1
+  densityTransmitBeerAbsorption: 0.408
+  densityTransmitThreshold: 0
+  densityTransmitPower: 2.11
+  lightMarchTransmitBeerAbsorption: 0.551
+  lightMarchTransmitThreshold: 0
+  lightmarchTransmitPower: 1.22
+  shortLightMarchTransmitBeerAbsorption: 0.272
+  shortLightMarchTransmitThreshold: 0.0126
+  shortLightmarchTransmitPower: 0.42
+  multipleScatteringBeerAbsorption: 0.5
+  powderAbsorption: 0.131
+  forwardScatter: 0.033
+  backwardScatter: 0.41
+  HGScatterMultiplier: 1
+  ambientColor: {r: 0, g: 0.1190331, b: 1, a: 1}
+  ambientPower: 0
+  debugMode: 0
+  debugRate: 1

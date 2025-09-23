@@ -61,6 +61,7 @@
             ZTest Always
             Blend One OneMinusSrcAlpha
             // Blend One Zero
+            // Blend SrcAlpha OneMinusSrcAlpha
 
             Tags { "LightMode" = "UniversalForward" }
 
@@ -70,9 +71,10 @@
 
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS_CASCADE
-            #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
-            #pragma multi_compile _ _ADDITIONAL_LIGHT_SHADOWS
+            // #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
+            // #pragma multi_compile _ _ADDITIONAL_LIGHT_SHADOWS
             #pragma multi_compile _ _SHADOWS_SOFT
+            #pragma multi_compile _ _DEBUG_CLOUD
 
             float4 _CascadeRange;
 
@@ -88,8 +90,8 @@
                
                 float4 cascadeRange = _CascadeRange;
                 float maxCascadeDis = _CascadeRange.y + 1.0 / _CascadeRange.w;
-                float depthDistance = depth_LinearEyeDepth( depth_GetDepthFull(uv));
-                float maxDistance = min(maxCascadeDis, depthDistance);
+                float depthDistance = depth_LinearEyeDepth( depth_GetDepthFull(uv)) - 1.0;
+                float maxDistance = min(maxCascadeDis, depthDistance)  ;
 
                 float3 camPos = _WorldSpaceCameraPos;
                 Light mainLight = GetMainLight();
@@ -100,7 +102,7 @@
                 // return half4( worldDistance, 0, 0, 1);
                 float startDistance = GetCloudObjectSurfaceDistance( camPos, viewDir, maxDistance);
 
-                float alpha = 0;
+                float alpha = 0.0;
                 float3 color = float3(0,0,0);
                 if ( startDistance < maxDistance - 0.01f  )
                 {
@@ -109,7 +111,7 @@
                     alpha = raymarchResult.w;
                 }
 
-                return half4(  color , alpha);
+                return half4(color , alpha);
 
             }
 

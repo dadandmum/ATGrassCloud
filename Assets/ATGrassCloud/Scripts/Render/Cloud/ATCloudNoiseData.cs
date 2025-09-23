@@ -8,10 +8,12 @@ using UnityEngine.Rendering;
 
 namespace ATGrassCloud
 {
+
     [System.Serializable]
     public class NoiseSettings
     {
         public enum NoiseChannel { R, G, B, A }
+        public enum NoiseType { Worley, Perlin , Simplex, Curl }
         [BoxGroup("Base")]
         [OnValueChanged("OnUpdateSettings")]
         [ReadOnly]
@@ -33,6 +35,9 @@ namespace ATGrassCloud
         [OnValueChanged("OnUpdateSettings")]
         [Range(0,1.0f)]
         public float mix;
+        [BoxGroup("Parameters")]
+        [OnValueChanged("OnUpdateSettings")]
+        public NoiseType noiseType;
         [BoxGroup("Parameters")]
         [OnValueChanged("OnUpdateSettings")]
         [Range(1,64)]
@@ -166,6 +171,7 @@ namespace ATGrassCloud
                 noiseComputeShader.SetVector("channelMask", ChannelMask(settings.channelID));
                 noiseComputeShader.SetTexture(KERNEL_NOISE_ID, "result", texture);
                 var limitsBuffer = SetBuffer(new int[] { int.MaxValue, 0 }, sizeof(int), "limits");
+                noiseComputeShader.SetInt("noiseType", (int)settings.noiseType);
                 UpdateProperties(settings);
     
                 int threads = Mathf.CeilToInt(texSize / 8.0f);

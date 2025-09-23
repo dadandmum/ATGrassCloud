@@ -17,6 +17,8 @@ int frequencyC;
 
 float4 channelMask;
 float layerMix;
+int noiseType;
+
 
 int3 indexToVector(uint index) {
 	uint x = (index % 3) - 1;
@@ -63,6 +65,162 @@ float4 map01(float4 value, float low, float high) {
 	return (value - low) / (high - low);
 }
 
+float fract(float v) {
+	return v - floor(v);
+}
+/* discontinuous pseudorandom uniformly distributed in [-0.5, +0.5]^3 */
+float3 random3(float3 c) {
+	float j = 4096.0*sin(dot(c,float3(17.0, 59.4, 15.0)));
+	float3 r;
+	r.z = fract(512.0*j);
+	j *= .125;
+	r.x = fract(512.0*j);
+	j *= .125;
+	r.y = fract(512.0*j);
+	return r-0.5;
+}
+
+
+/* skew constants for 3d simplex functions */
+const float F3 =  0.3333333;
+const float G3 =  0.1666667;
+
+/* 3d simplex noise */
+float snoise(float3 p) {
+		/* 1. find current tetrahedron T and it's four vertices */
+		/* s, s+i1, s+i2, s+1.0 - absolute skewed (integer) coordinates of T vertices */
+		/* x, x1, x2, x3 - unskewed coordinates of p relative to each of T vertices*/
+		
+		/* calculate s and x */
+		float3 s = floor(p + dot(p, float3(F3, F3, F3)));
+		float3 x = p - s + dot(s, float3(G3, G3, G3));
+		
+		/* calculate i1 and i2 */
+		float3 e = step(float3(0,0,0), x - x.yzx);
+		float3 i1 = e*(1.0 - e.zxy);
+		float3 i2 = 1.0 - e.zxy*(1.0 - e);
+		
+		/* x1, x2, x3 */
+		float3 x1 = x - i1 + G3;
+		float3 x2 = x - i2 + 2.0*G3;
+		float3 x3 = x - 1.0 + 3.0*G3;
+		
+		/* 2. find four surflets and store them in d */
+		float4 w, d;
+		
+		/* calculate surflet weights */
+		w.x = dot(x, x);
+		w.y = dot(x1, x1);
+		w.z = dot(x2, x2);
+		w.w = dot(x3, x3);
+		
+		/* w fades from 0.6 at the center of the surflet to 0.0 at the margin */
+		w = max(0.6 - w, 0.0);
+		
+		/* calculate surflet components */
+		d.x = dot(random3(s), x);
+		d.y = dot(random3(s + i1), x1);
+		d.z = dot(random3(s + i2), x2);
+		d.w = dot(random3(s + 1.0), x3);
+		
+		/* multiply d by w^4 */
+		w *= w;
+		w *= w;
+		d *= w;
+		
+		/* 3. return the sum of the four surflets */
+		return dot(d, float4(52.0, 52.0, 52.0, 52.0));
+}
+
+
+// Curl Noise from 3D Simplex Noise
+// 使用三个偏移噪声通道构造向量势，再求旋度
+float3 curl_noise(float3 p) {
+    float e = 0.01; // 小偏移量（有限差分步长）
+
+    float noise_x0 = snoise(float3(p.x - e, p.y, p.z));
+    float noise_x1 = snoise(float3(p.x + e, p.y, p.z));
+    
+    float noise_y0 = snoise(float3(p.x, p.y - e, p.z));
+    float noise_y1 = snoise(float3(p.x, p.y + e, p.z));
+    
+    float noise_z0 = snoise(float3(p.x, p.y, p.z - e));
+    float noise_z1 = snoise(float3(p.x, p.y, p.z + e));
+
+	return snoise(p);
+
+    // 旋度公式：
+    // curl = ( ∂w/∂y - ∂v/∂z,
+    //          ∂u/∂z - ∂w/∂x,
+    //          ∂v/∂x - ∂u/∂y )
+    // 这里我们令：
+    // u = noise_z, v = noise_x, w = noise_y （任意组合）
+    
+    float3 duv = float3(
+        noise_z1 - noise_z0,
+        noise_x1 - noise_x0,
+        noise_y1 - noise_y0
+    ) / (2.0 * e);
+
+    float3 dwu = float3(
+        noise_y1 - noise_y0,
+        noise_z1 - noise_z0,
+        noise_x1 - noise_x0
+    ) / (2.0 * e);
+
+    float3 curl;
+    curl.x = dwu.y - duv.z;  // ∂w/∂y - ∂v/∂z
+    curl.y = duv.x - dwu.z;  // ∂u/∂z - ∂w/∂x
+    curl.z = duv.y - dwu.x;  // ∂v/∂x - ∂u/∂y
+
+    return curl;
+}
+
+float2 hash(float2 p)//不用sin的更好
+{
+    float3 p3 = frac(float3(p.xyx) * float3(.1031, .1030, .0973));
+    p3 += dot(p3, p3.yzx+19.19);
+    return -1. + 2.*frac((p3.xx+p3.yz)*p3.zy);
+}
+
+// return gradient noise (in x) and its derivatives (in yz)
+//  https://www.shadertoy.com/view/XdXBRH
+float3 perlin2DNoise(in float2 uv, bool revert)
+{
+    float2 i = floor(uv);
+    float2 f = frac(uv);
+
+    // quintic interpolation五次插值
+    // 若能使多阶导数在插值点上为0，可以进一步平滑
+    // 五次Hermit插值函数：S(x) = 6 x^5 - 15 x^4 + 10 x^3	
+    float2 u = f * f * f * (f * (f * 6.0 - 15.0)+10.0);
+    float2 du = 30.0 * f * f * (f * (f - 2.0)+1.0);
+    
+    //random gradients
+    float2 ga = hash(i + float2(0.0,0.0));
+    float2 gb = hash(i + float2(1.0,0.0));
+    float2 gc = hash(i + float2(0.0,1.0));
+    float2 gd = hash(i + float2(1.0,1.0));
+    
+    //random values by random gradients
+    float va = dot(ga, f - float2(0.0,0.0));
+    float vb = dot(gb, f - float2(1.0,0.0));
+    float vc = dot(gc, f - float2(0.0,1.0));
+    float vd = dot(gd, f - float2(1.0,1.0));
+
+    //即mix(mix(va, vb, u.x), mix(vc, vd, u.x), u.y);
+    //与2to1的Perlin Noise除了S曲线外结果基本一致
+    float value		= va + u.x*(vb-va) + u.y*(vc-va) + u.x*u.y*(va-vb-vc+vd);
+    
+    //mix(mix(ga, gb, u.x), mix(gc, gd, u.x), u.y);
+    float2 derivatives = ga + u.x*(gb-ga) + u.y*(gc-ga) + u.x*u.y*(ga-gb-gc+gd) 
+        + du*(u.yx*(va-vb-vc+vd) + float2(vb-va,vc-va));
+    
+    if(revert)
+        value = 1.0 - 2.0 * value;
+        
+    return float3(value, derivatives);
+}
 
 float perlin(float3 samplePos, int numCells, StructuredBuffer<float3> points) {
 	int3 sampleCell = floor(samplePos * numCells);
@@ -104,8 +262,6 @@ float perlin(float3 samplePos, int numCells, StructuredBuffer<float3> points) {
 }
 
 
-
-
 float worley(float3 samplePos, int numCells, StructuredBuffer<float3> points) {
 	int3 sampleCell = floor(samplePos * numCells);
 	float minDistance = 1;
@@ -129,7 +285,7 @@ float worley(float3 samplePos, int numCells, StructuredBuffer<float3> points) {
 		}
 	}
 	return sqrt(minDistance);
-}
+} 
 
 [numthreads(numThreads, numThreads, numThreads)]
 void CSNoise(uint3 id : SV_DispatchThreadID)
@@ -139,15 +295,26 @@ void CSNoise(uint3 id : SV_DispatchThreadID)
 	float layerB;
 	float layerC;
 	
-	if (resolution == 128 && channelMask.x == 1) {
-	
-		layerB = perlin(pos, frequencyB, pointsB);
-		layerC = perlin(pos, frequencyC, pointsC);
-	}
-	else
+
+	if (noiseType == 0)
 	{
 		layerB = worley(pos, frequencyB, pointsB);
 		layerC = worley(pos, frequencyC, pointsC);
+	}
+	else if (noiseType == 1)
+	{
+		layerB = perlin(pos, frequencyB, pointsB);
+		layerC = perlin(pos, frequencyC, pointsC);
+	}
+	else if (noiseType == 2)
+	{
+		layerB = snoise(pos * exp( frequencyB * 0.05));
+		layerC = snoise(pos * exp( frequencyC * 0.05));
+	}
+	else if (noiseType == 3)
+	{
+		layerB = curl_noise(pos * exp( frequencyB * 0.05));
+		layerC = curl_noise(pos * exp( frequencyC * 0.05));
 	}
 	
 	// Average Layers and invert
@@ -156,7 +323,6 @@ void CSNoise(uint3 id : SV_DispatchThreadID)
 	InterlockedMin(limits[0], val);
 	InterlockedMax(limits[1], val);
 	result[id] = result[id] * (1 - channelMask) + noiseAvg * channelMask;
-
 }
 
 [numthreads(numThreads, numThreads, numThreads)]

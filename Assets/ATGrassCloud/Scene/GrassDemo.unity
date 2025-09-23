@@ -26,7 +26,7 @@ RenderSettings:
   m_AmbientIntensity: 1
   m_AmbientMode: 0
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 2100000, guid: 2f7ed8e84567f6341a2b7c066761719c, type: 2}
+  m_SkyboxMaterial: {fileID: 2100000, guid: af99ffdce6a043a40b8989e9fc2d355a, type: 2}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -276,7 +276,7 @@ Transform:
   m_GameObject: {fileID: 250145889}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -6.22, y: 8.53, z: 0}
+  m_LocalPosition: {x: -6.22, y: 5.2, z: 19.2}
   m_LocalScale: {x: 3.6929, y: 3.6929, z: 3.6929}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -406,7 +406,7 @@ Transform:
   m_GameObject: {fileID: 601054671}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -4.8, y: 5.74, z: 115.6}
+  m_LocalPosition: {x: -7.7, y: 27.8, z: 150.4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -568,9 +568,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cloudObjects:
+  - {fileID: 601054672}
   - {fileID: 2137694372}
   - {fileID: 1105141716}
-  - {fileID: 601054672}
 --- !u!4 &999447003
 Transform:
   m_ObjectHideFlags: 0
@@ -1307,13 +1307,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1788530776}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.28906816, y: -0.01984982, z: 0.037368488, w: 0.956373}
-  m_LocalPosition: {x: 12.2, y: 8.07, z: 44.4}
+  m_LocalRotation: {x: -0.014622091, y: 0.5627868, z: 0.4900105, w: 0.66554254}
+  m_LocalPosition: {x: 12.2, y: 4, z: 44.4}
   m_LocalScale: {x: 15.0818205, y: 15.0818205, z: 15.0818205}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: -33.465, y: -4.095, z: 5.707}
+  m_LocalEulerAnglesHint: {x: -34.82, y: 63.515, z: 50.756}
 --- !u!1001 &1892595774
 PrefabInstance:
   m_ObjectHideFlags: 0

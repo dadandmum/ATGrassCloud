@@ -12,9 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 17ac265ed8e890f43979c56a94903b61, type: 3}
   m_Name: WindData_Default
   m_EditorClassIdentifier: 
-  windMap0: {fileID: 2800000, guid: 460ccb46055a9184db367a44b8aef96e, type: 3}
-  windDirection: {x: 0, y: 0, z: 0}
-  windSpeed: 0
   windWorldRange: 30
   windWorldSnap: 5
   windWorldFade: 10
