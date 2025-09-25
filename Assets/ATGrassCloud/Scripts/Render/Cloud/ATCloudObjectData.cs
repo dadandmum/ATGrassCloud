@@ -18,6 +18,8 @@ namespace ATGrassCloud
         None = 0,
         Sphere = 1,
         Box = 2,
+        Capsule = 3, 
+        Cylinder = 4,
 
     }
 
@@ -66,6 +68,19 @@ namespace ATGrassCloud
         [ShowIf("basicObjectType",BasicCloudObjectType.Box)]
         public float length;
 
+        [BoxGroup("Object Data")]
+        [ShowIf("basicObjectType",BasicCloudObjectType.Capsule)]
+        public float capsuleLength;
+        [BoxGroup("Object Data")]
+        [ShowIf("basicObjectType",BasicCloudObjectType.Capsule)]
+        public float capsuleRadius;
+        [BoxGroup("Object Data")]
+        [ShowIf("basicObjectType",BasicCloudObjectType.Cylinder)]
+        public float cylinderRadius;
+        [BoxGroup("Object Data")]
+        [ShowIf("basicObjectType",BasicCloudObjectType.Cylinder)]
+        public float cylinderHeight;
+        
 
         public float GetBoundingSphereRadius()
         {
@@ -77,6 +92,10 @@ namespace ATGrassCloud
                         return radius * boundingSphereScale;
                     case BasicCloudObjectType.Box:
                         return length * 0.5f * Mathf.Sqrt(3.0f) * boundingSphereScale;
+                    case BasicCloudObjectType.Capsule:
+                        return (capsuleLength * 0.5f + capsuleRadius) * boundingSphereScale;
+                    case BasicCloudObjectType.Cylinder:
+                        return ( Mathf.Sqrt( Mathf.Pow(cylinderHeight * 0.5f, 2.0f) + Mathf.Pow(cylinderRadius, 2.0f))) * boundingSphereScale;
                     default:
                         return  boundingSphereScale;
                 }
@@ -97,6 +116,10 @@ namespace ATGrassCloud
                         return new Vector4(radius,0,0,0);
                     case BasicCloudObjectType.Box:
                         return new Vector4(length,0,0,0);
+                    case BasicCloudObjectType.Capsule:
+                        return new Vector4(capsuleLength,capsuleRadius,0,0);
+                    case BasicCloudObjectType.Cylinder:
+                        return new Vector4(cylinderHeight,cylinderRadius,0,0);
                     default:
                         return new Vector4(0,0,0,0);
                 }
@@ -104,9 +127,6 @@ namespace ATGrassCloud
             return Vector4.zero;
 
         }
-
-
-
 
         [BoxGroup("Debug")]
         public bool drawBoundingSphere = false;

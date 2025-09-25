@@ -6,58 +6,61 @@ using UnityEngine.Rendering.Universal;
 using ATGrassCloud;
 using Sirenix.OdinInspector;
 
-public class ATGrassRenderFeature : ScriptableRendererFeature
+namespace ATGrassCloud
 {
-    [InlineEditor]
-    public ATGrassData grassData;
-    // [SerializeField] private Material heightMapMat;
-    // [SerializeField] private ComputeShader computeShader;
-    // [SerializeField] private bool generateHeightMat;
-    [SerializeField] private RenderPassEvent renderPassEvent;
-    [SerializeField] private RenderPassEvent drawOpaqueEvent;
-
-    [System.Serializable]
-    public struct GrassDebugData
+    public class ATGrassRenderFeature : ScriptableRendererFeature
     {
-        public bool enableDebug;
-        public int debugCascade;
-        public bool isShowHeightMap;
-    }
+        [InlineEditor]
+        public ATGrassData grassData;
+        // [SerializeField] private Material heightMapMat;
+        // [SerializeField] private ComputeShader computeShader;
+        // [SerializeField] private bool generateHeightMat;
+        [SerializeField] private RenderPassEvent renderPassEvent;
+        [SerializeField] private RenderPassEvent drawOpaqueEvent;
 
-    [SerializeField] private GrassDebugData debugData;
-
-    GrassPrePass grassDataPass;
-
-    GrassRenderOpaquePass grassOpaquePass;
-
-    GrassDebugPass grassDebugPass;
-
-    public override void Create()
-    {
-        grassDataPass = new GrassPrePass(
-            grassData );
-        grassDataPass.renderPassEvent = renderPassEvent;
-        grassOpaquePass = new GrassRenderOpaquePass(grassData, grassDataPass);
-        grassOpaquePass.renderPassEvent = drawOpaqueEvent;
-        grassDebugPass = new GrassDebugPass(debugData, grassDataPass, grassData);
-        grassDebugPass.renderPassEvent = RenderPassEvent.AfterRendering;
-    }
-
-    public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
-    {
-        renderer.EnqueuePass(grassDataPass);
-        renderer.EnqueuePass(grassOpaquePass);
-        renderer.EnqueuePass(grassDebugPass);
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing)
+        [System.Serializable]
+        public struct GrassDebugData
         {
-            grassDataPass.Dispose();
-            grassOpaquePass.Dispose();
+            public bool enableDebug;
+            public int debugCascade;
+            public bool isShowHeightMap;
         }
+
+        [SerializeField] private GrassDebugData debugData;
+
+        GrassPrePass grassDataPass;
+
+        GrassRenderOpaquePass grassOpaquePass;
+
+        GrassDebugPass grassDebugPass;
+
+        public override void Create()
+        {
+            grassDataPass = new GrassPrePass(
+                grassData );
+            grassDataPass.renderPassEvent = renderPassEvent;
+            grassOpaquePass = new GrassRenderOpaquePass(grassData, grassDataPass);
+            grassOpaquePass.renderPassEvent = drawOpaqueEvent;
+            grassDebugPass = new GrassDebugPass(debugData, grassDataPass, grassData);
+            grassDebugPass.renderPassEvent = RenderPassEvent.AfterRendering;
+        }
+
+        public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
+        {
+            renderer.EnqueuePass(grassDataPass);
+            renderer.EnqueuePass(grassOpaquePass);
+            renderer.EnqueuePass(grassDebugPass);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                grassDataPass.Dispose();
+                grassOpaquePass.Dispose();
+            }
+        }
+
+
     }
-
-
 }

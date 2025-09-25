@@ -19,7 +19,7 @@ public class CubemapCreator : OdinEditorWindow
     [ShowInInspector]
     public Material bakeMaterial;
     // ========== Odin 窗口设置 ==========
-    [MenuItem("Tools/ATGrassCloud/Cubemap Creator")]
+    [MenuItem("Tools/AT Grass Cloud/Cubemap Creator")]
     private static void OpenWindow()
     {
         var window = GetWindow<CubemapCreator>();

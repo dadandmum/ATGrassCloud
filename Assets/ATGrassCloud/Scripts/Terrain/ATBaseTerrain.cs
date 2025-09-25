@@ -1,18 +1,17 @@
 using System.Collections;
 using System.Collections.Generic;
+using Sirenix.OdinInspector;
 using UnityEngine;
 
-public class ATBaseTerrain : MonoBehaviour
+namespace ATGrassCloud
 {
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
+    // public class ATTerrain : MonoBehaviour
+    // {
+    //     [BoxGroup("Data")]
+    //     public ATTerrainData data;
 
-    // Update is called once per frame
-    void Update()
-    {
         
-    }
+
+    // }
+
 }

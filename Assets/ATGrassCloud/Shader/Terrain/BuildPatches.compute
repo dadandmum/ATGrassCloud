@@ -1,0 +1,7 @@
+#pragma kernel BuildPatches
+
+#include "Assets/ATGrassCloud/Shader/Lib/TerrainLib.hlsl"
+
+[numthreads(8,8,1)]
+void BuildPatches(uint3 id : SV_DispatchThreadID){
+}

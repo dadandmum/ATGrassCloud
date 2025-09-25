@@ -18,4 +18,8 @@ MonoBehaviour:
   boundingSphereScale: 1.6
   radius: 25
   length: 40.92
+  capsuleLength: 18.91
+  capsuleRadius: 3
+  cylinderRadius: 0
+  cylinderHeight: 0
   drawBoundingSphere: 1

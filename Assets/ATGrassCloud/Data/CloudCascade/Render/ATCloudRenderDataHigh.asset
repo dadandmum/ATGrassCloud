@@ -28,11 +28,12 @@ MonoBehaviour:
   MaxRaymarchStepCount: 32
   raymarchRange: 8
   raymarchStep: 0.25
-  raymarchNoiseOffset: 0.5
+  densityRayRandOffset: 1
   blueNoise: {fileID: 2800000, guid: 7dc1d9550fc162d45ab7e013007e1a37, type: 3}
-  MaxLightmarchStepCount: 16
+  MaxLightmarchStepCount: 24
   lightmarchRange: 32
-  lightmarchStep: 2
+  lightmarchStep: 1.3333334
+  lightMarchRayRandOffset: 1
   enableShortLightmarch: 1
   MaxShortLightmarchStepCount: 8
   shortLightmarchRange: 1.5

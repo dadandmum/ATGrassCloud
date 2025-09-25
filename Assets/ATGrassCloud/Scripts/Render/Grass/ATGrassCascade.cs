@@ -185,7 +185,7 @@ namespace ATGrassCloud
                 }
 
                 Matrix4x4 viewMatrix, projMatrix;
-                GrassPrePass.CalculateTopDownCameraData(
+                GrassUtils.CalculateTopDownCameraData(
                     camera,
                     data.GetMaxDistance(),
                     data.GetSnapDistance(),
@@ -199,7 +199,7 @@ namespace ATGrassCloud
                 context.ExecuteCommandBuffer(cmd);
                 cmd.Clear();
 
-                var cameraBounds = GrassPrePass.CalculateCameraBounds(camera, data.GetMaxDistance());
+                var cameraBounds = GrassUtils.CalculateCameraBounds(camera, data.GetMaxDistance());
                 //Replace the material of the objects with the "heightMapLayer" and render them
                 var drawSetting = pass.CreateDrawingSettings(heightMapTagList, ref renderingData, SortingCriteria.QuantizedFrontToBack);
 
@@ -236,11 +236,11 @@ namespace ATGrassCloud
                     camera = renderingData.cameraData.camera;
                 }
 
-                var cameraBounds = GrassPrePass.CalculateCameraBounds(camera, data.GetMaxDistance());
+                var cameraBounds = GrassUtils.CalculateCameraBounds(camera, data.GetMaxDistance());
                 var tileSize = data.TileSize;
                 var maxBufferCount = data.GetMaxInstanceCount();
-                var centerPos = GrassPrePass.GetCenterPosition(camera , data.GetSnapDistance());
-                var heightMapData = GrassPrePass.GetDrawTopDownTextureData(cameraBounds , data.GetMaxDistance() , data.GetSnapDistance());
+                var centerPos = GrassUtils.GetCenterPosition(camera , data.GetSnapDistance());
+                var heightMapData = GrassUtils.GetDrawTopDownTextureData(cameraBounds , data.GetMaxDistance() , data.GetSnapDistance());
                 
                 Matrix4x4 projectionMatrix = GL.GetGPUProjectionMatrix( camera.projectionMatrix , false);
                 Matrix4x4 viewProjectionMatrix = projectionMatrix * camera.worldToCameraMatrix;
@@ -339,8 +339,8 @@ namespace ATGrassCloud
             if (camera == null)
                 return;
 
-            Bounds cameraBounds = GrassPrePass.CalculateCameraBounds(camera, data.GetMaxDistance());
-            var mapData = GrassPrePass.GetDrawTopDownTextureData(cameraBounds , data.GetMaxDistance() , data.GetSnapDistance());
+            Bounds cameraBounds = GrassUtils.CalculateCameraBounds(camera, data.GetMaxDistance());
+            var mapData = GrassUtils.GetDrawTopDownTextureData(cameraBounds , data.GetMaxDistance() , data.GetSnapDistance());
 
             if (data.updateMaterial && data.ProcedualMeshMaterial != null)
             {
@@ -380,8 +380,8 @@ namespace ATGrassCloud
             Camera camera = Camera.main;
             if (camera == null)
                 return;
-            Bounds cameraBounds = GrassPrePass.CalculateCameraBounds(camera, data.GetMaxDistance());
-            var mapData = GrassPrePass.GetDrawTopDownTextureData(cameraBounds , data.GetMaxDistance() , data.GetSnapDistance());
+            Bounds cameraBounds = GrassUtils.CalculateCameraBounds(camera, data.GetMaxDistance());
+            var mapData = GrassUtils.GetDrawTopDownTextureData(cameraBounds , data.GetMaxDistance() , data.GetSnapDistance());
 
             if (data.updateMaterial)
             {

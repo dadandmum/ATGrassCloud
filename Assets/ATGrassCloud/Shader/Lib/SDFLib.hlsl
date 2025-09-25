@@ -64,6 +64,61 @@ float sdBox(float3 posOS, float len)
     return length(max(q, 0)) + min(max(q.x, max(q.y, q.z)), 0);
 }
 
+//capsule
+float sdCapsule(float3 p, float3 a, float3 b, float r)
+{
+    float3 pa = p - a, ba = b - a;
+    float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+    return length(pa - ba * h) - r;
+}
+
+
+//capsule
+float sdCapsule(float3 p, float len, float r)
+{
+    float3 top = float3( 0 , 0.5f * len, 0);
+    float3 bottom = float3( 0 , -0.5f * len, 0);
+    return sdCapsule(p, top, bottom, r);
+}
+
+//rounded cylinder
+float sdRoundedCylinder(float3 p, float ra, float rb, float h)
+{
+    float2 d = float2(length(p.xz) - 2.0 * ra + rb, abs(p.y) - h);
+    return min(max(d.x, d.y), 0.0) + length(max(d, 0.0)) - rb;
+}
+
+float sdCylinder(float3 p, float h, float r)
+{
+    // Half-height
+    float halfH = h * 0.5f;
+
+    // Radial distance in the XZ plane
+    float2 w = float2(length(p.xz), p.y);  // (radial distance, y coordinate)
+
+    // Vector from closest point on segment [-h/2, h/2] along Y to (radial, y)
+    float2 d = float2(
+        w.x - r,   // radial: distance from radius (positive if outside)
+        abs(w.y) - halfH   // axial: distance from cylinder end (positive if beyond cap)
+    );
+
+    // Determine which feature we're closest to:
+    // - If d.y <= 0, we're between the caps → distance is dominated by radial part (or inside)
+    // - If d.x <= 0, we're inside radial bounds → capped by axial (end caps)
+    float insideRadial = d.x < 0.0f;
+    float insideAxial  = d.y < 0.0f;
+
+    // Compute signed distance based on region:
+    if (insideRadial && insideAxial)
+    {
+        // Inside both radial and axial bounds → we are inside the cylinder
+        // The distance is negative of the maximum "penetration"
+        return -min(-d.x, -d.y);
+    }
+
+    // Return length of positive components: this gives distance to nearest feature
+    return length(max(d, 0.0f)) + min(0.0f, max(d.x, d.y));
+}
 
 
 // ============== SDF Detect Distance =======
@@ -73,7 +128,7 @@ float sdBox(float3 posOS, float len)
 /// @param viewOS    Ray direction in object space (does not need to be normalized).
 /// @param radius    Radius of the sphere (assumed centered at origin).
 /// @return          The closest intersection point in object space, 
-///                  or float3(MAXFLOAT) if no intersection.
+///                  or float3(1e30) if no intersection.
 float3 rayIntersectSphere(float3 posOS, float3 viewOS, float radius)
 {
     // Ensure ray direction is meaningful
@@ -123,7 +178,7 @@ float3 rayIntersectSphere(float3 posOS, float3 viewOS, float radius)
 /// @param posOS     Ray origin in object space: \vec{o}
 /// @param viewOS    Ray direction in object space: \vec{d} (not necessarily normalized)
 /// @param len       Side length of the cube (cube spans [-len/2, len/2] on each axis)
-/// @return          Closest intersection point in object space, or (MAXFLOAT) if no hit.
+/// @return          Closest intersection point in object space, or (1e30) if no hit.
 ///
 /// Math Background:
 /// ----------------
@@ -236,6 +291,317 @@ float3 rayIntersectBox(float3 posOS, float3 viewOS, float len)
 
 
 
+/// @brief Intersect a ray with a closed cylinder centered at origin, aligned with Y-axis.
+///        Cylinder: radius r, height H → spans y ∈ [-H/2, H/2]
+/// @param posOS     Ray origin in object space: \vec{o}
+/// @param viewOS    Ray direction in object space: \vec{d} (not necessarily normalized)
+/// @param height    Total height of the cylinder
+/// @param radius    Radius of the cylinder
+/// @return          Closest intersection point in object space, or (1e30) if no hit.
+///
+/// Math Derivation:
+/// ----------------
+/// The cylinder consists of:
+///   A. Lateral Surface: x² + z² = r²,  y ∈ [-h, h],  h = height/2
+///   B. Bottom Cap:     x² + z² ≤ r²,  y = -h
+///   C. Top Cap:        x² + z² ≤ r²,  y = +h
+///
+/// Ray: R(t) = o + t * d
+///
+float3 rayIntersectCylinder(float3 posOS, float3 viewOS, float height, float radius)
+{
+    float h = height * 0.5f; // Half-height: cylinder from y = -h to y = +h
+    float r2 = radius * radius;
+
+    float3 o = posOS;
+    float3 d = viewOS;
+
+    // List of candidate hit distances
+    float t_hit = 1e30;
+
+    // ——————————————————————————————————————————————————————
+    // Part 1: Intersect with lateral surface (curved side)
+    //         Equation: x² + z² = r², for y ∈ [-h, h]
+    //
+    // Substitute: (o.x + t*d.x)^2 + (o.z + t*d.z)^2 = r^2
+    // → t²*(dx² + dz²) + 2t*(ox*dx + oz*dz) + (ox² + oz² - r²) = 0
+    // ——————————————————————————————————————————————————————
+
+    float dx2_dz2 = d.x * d.x + d.z * d.z;
+    float ox_dx__oz_dz = o.x * d.x + o.z * d.z;
+    float ox2_oz2__r2 = o.x * o.x + o.z * o.z - r2;
+
+    // If dx2_dz2 ≈ 0 → ray is parallel to Y-axis (no XZ movement)
+    if (dx2_dz2 > 1e-8f)
+    {
+        // Quadratic: A*t² + B*t + C = 0
+        float A_lat = dx2_dz2;
+        float B_lat = 2.0f * ox_dx__oz_dz;
+        float C_lat = ox2_oz2__r2;
+
+        float discr = B_lat * B_lat - 4.0f * A_lat * C_lat;
+        if (discr >= 0.0f)
+        {
+            float sqrtD = sqrt(discr);
+            float t0 = (-B_lat - sqrtD) / (2.0f * A_lat);
+            float t1 = (-B_lat + sqrtD) / (2.0f * A_lat);
+
+            // Test both intersections
+            for (int i = 0; i < 2; ++i)
+            {
+                float t = (i == 0) ? t0 : t1;
+                if (t < 0.0f) continue;
+
+                float3 P = o + t * d;
+                // Check if y is within cylinder bounds
+                if (P.y >= -h && P.y <= h)
+                {
+                    if (t < t_hit) t_hit = t;
+                }
+            }
+        }
+    }
+    else
+    {
+        // Ray is nearly vertical (no change in x,z)
+        // Only intersect if already on cylinder surface
+        if (o.x * o.x + o.z * o.z <= r2 + 1e-4f && o.x * o.x + o.z * o.z >= r2 - 1e-4f)
+        {
+            // But only if moving inward? Not easy — skip unless needed.
+            // For now, rely on caps.
+        }
+    }
+
+    // ——————————————————————————————————————————————————————
+    // Part 2: Intersect with bottom cap (y = -h)
+    //         Condition: x² + z² ≤ r²
+    // Solve: o.y + t*d.y = -h  → t = (-h - o.y) / d.y
+    // ——————————————————————————————————————————————————————
+
+    if (abs(d.y) > 1e-8f)
+    {
+        float t_bottom = (-h - o.y) / d.y;
+        if (t_bottom >= 0.0f)
+        {
+            float3 P = o + t_bottom * d;
+            float x = P.x, z = P.z;
+            if (x*x + z*z <= r2)
+            {
+                if (t_bottom < t_hit) t_hit = t_bottom;
+            }
+        }
+    }
+
+    // ——————————————————————————————————————————————————————
+    // Part 3: Intersect with top cap (y = +h)
+    //         Condition: x² + z² ≤ r²
+    // Solve: o.y + t*d.y = +h  → t = (h - o.y) / d.y
+    // ——————————————————————————————————————————————————————
+
+    float t_top = (h - o.y) / d.y;
+    if (t_top >= 0.0f)
+    {
+        float3 P = o + t_top * d;
+        float x = P.x, z = P.z;
+        if (x*x + z*z <= r2)
+        {
+            if (t_top < t_hit) t_hit = t_top;
+        }
+    }
+
+    // ——————————————————————————————————————————————————————
+    // Final: Did we get any valid hit?
+    // ——————————————————————————————————————————————————————
+
+    if (t_hit < 1e30)
+    {
+        return o + t_hit * d;
+    }
+
+    // No intersection
+    return float3(1e30, 1e30, 1e30);
+}
+
+
+
+/// @brief Intersect a ray with a capsule centered at origin, aligned along Y-axis.
+///        Capsule: line segment from (0, -len/2, 0) to (0, +len/2, 0), radius = radius.
+/// @param posOS     Ray origin in object space: \vec{o}
+/// @param viewOS    Ray direction in object space: \vec{d} (does not need to be normalized)
+/// @param len       Length of the cylindrical part (distance between sphere centers)
+/// @param radius    Radius of the capsule
+/// @return          Closest intersection point in object space, or (1e30) if no hit.
+///
+/// Math Derivation:
+/// ----------------
+/// The capsule is the set of points within distance `radius` from the line segment AB,
+/// where A = (0, -h, 0), B = (0, +h, 0), h = len/2.
+///
+/// We break the problem into 3 parts:
+///   1. Intersect with the infinite cylinder around AB
+///   2. Clamp to segment (capsule body)
+///   3. Intersect with hemispheres at A and B (caps)
+/// Then take the closest valid hit.
+///
+float3 rayIntersectCapsule(float3 posOS, float3 viewOS, float len, float radius)
+{
+    float h = len * 0.5f; // Half-length: from center to sphere center
+
+    float3 A = float3(0, -h, 0); // Bottom sphere center
+    float3 B = float3(0,  h, 0); // Top sphere center
+
+    // Normalize direction for cleaner math? No — keep t in world units
+    float3 o = posOS;
+    float3 d = viewOS;
+
+    float3 AB = B - A;           // = (0, len, 0)
+    float3 AO = o - A;
+    float3 BO = o - B;
+
+    float3 DO = d; // Direction vector
+
+    // Precompute dot products of AB
+    float ab2 = dot(AB, AB); // |AB|^2 = len^2
+    float inv_ab2 = 1.0f / ab2;
+
+    // List of candidate hit distances
+    float t_hit = 1e30;
+
+    // ——————————————————————————————————————————————————————
+    // 1. Intersect with infinite cylinder of radius `radius` around line AB
+    //    Equation: distance from point on ray to line AB = radius
+    //
+    // Let P(t) = o + t*d
+    // Closest point on line AB to P(t): clamp( dot(AP, AB) / |AB|^2, 0, 1 )
+    //
+    // Vector from A to P(t): AP = AO + t*d
+    // Project onto AB: s = dot(AP, AB) / |AB|^2
+    //
+    // Squared distance from P(t) to line AB:
+    //   dist^2 = |AP|^2 - (dot(AP, AB))^2 / |AB|^2
+    // Set equal to radius^2 → quadratic in t
+    // ——————————————————————————————————————————————————————
+
+    float ddo = dot(DO, AB);      // d·AB
+    float ado = dot(AO, AB);      // AO·AB
+    float aao = dot(AO, AO);      // |AO|^2
+    float r2 = radius * radius;
+
+    // Coefficients of quadratic: At^2 + Bt + C = 0
+    float A_cyl = dot(DO, DO) - ddo * ddo * inv_ab2;
+    float B_cyl = 2.0f * (dot(DO, AO) - ddo * ado * inv_ab2);
+    float C_cyl = aao - ado * ado * inv_ab2 - r2;
+
+    float discr_cyl = B_cyl * B_cyl - 4.0f * A_cyl * C_cyl;
+
+    if (discr_cyl >= 0.0f && A_cyl != 0.0f)
+    {
+        float sqrtD = sqrt(discr_cyl);
+        float t0 = (-B_cyl - sqrtD) / (2.0f * A_cyl);
+        float t1 = (-B_cyl + sqrtD) / (2.0f * A_cyl);
+
+        // Check both solutions
+        for (int i = 0; i < 2; ++i)
+        {
+            float t = (i == 0) ? t0 : t1;
+            if (t < 0.0f) continue;
+
+            float3 P = o + t * d;                    // Point on ray
+            float3 AP = P - A;
+            float s = dot(AP, AB) * inv_ab2;         // Parametric coord along AB
+
+            // Is the closest point on the segment AB?
+            if (s >= 0.0f && s <= 1.0f)
+            {
+                if (t < t_hit) t_hit = t;
+            }
+        }
+    }
+
+    // ——————————————————————————————————————————————————————
+    // 2. Intersect with bottom hemisphere (centered at A, radius = radius)
+    //    But only the hemisphere pointing downward (y <= -h)
+    //    Solve: |o + t*d - A|^2 = radius^2
+    // ——————————————————————————————————————————————————————
+
+    float3 OA = AO; // o - A
+    float a = dot(DO, DO);
+    float b = 2.0f * dot(DO, OA);
+    float c = dot(OA, OA) - r2;
+
+    float discr_sphereA = b * b - 4.0f * a * c;
+    if (discr_sphereA >= 0.0f)
+    {
+        float sqrtD = sqrt(discr_sphereA);
+        float t0 = (-b - sqrtD) / (2.0f * a);
+        float t1 = (-b + sqrtD) / (2.0f * a);
+
+        // Test t0 (closest)
+        if (t0 >= 0.0f)
+        {
+            float3 P = o + t0 * d;
+            if (P.y <= A.y) // On bottom hemisphere
+            {
+                if (t0 < t_hit) t_hit = t0;
+            }
+        }
+        // If t0 not valid, try t1 (farther hit)
+        else if (t1 >= 0.0f)
+        {
+            float3 P = o + t1 * d;
+            if (P.y <= A.y)
+            {
+                if (t1 < t_hit) t_hit = t1;
+            }
+        }
+    }
+
+    // ——————————————————————————————————————————————————————
+    // 3. Intersect with top hemisphere (centered at B, radius = radius)
+    //    Only accept points where y >= B.y
+    // ——————————————————————————————————————————————————————
+
+    float3 OB = o - B;
+    b = 2.0f * dot(DO, OB);
+    c = dot(OB, OB) - r2;
+
+    float discr_sphereB = b * b - 4.0f * a * c;
+    if (discr_sphereB >= 0.0f)
+    {
+        float sqrtD = sqrt(discr_sphereB);
+        float t0 = (-b - sqrtD) / (2.0f * a);
+        float t1 = (-b + sqrtD) / (2.0f * a);
+
+        if (t0 >= 0.0f)
+        {
+            float3 P = o + t0 * d;
+            if (P.y >= B.y) // On top hemisphere
+            {
+                if (t0 < t_hit) t_hit = t0;
+            }
+        }
+        else if (t1 >= 0.0f)
+        {
+            float3 P = o + t1 * d;
+            if (P.y >= B.y)
+            {
+                if (t1 < t_hit) t_hit = t1;
+            }
+        }
+    }
+
+    // ——————————————————————————————————————————————————————
+    // Final: Did we get any hit?
+    // ——————————————————————————————————————————————————————
+
+    if (t_hit < 1e30)
+    {
+        return o + t_hit * d;
+    }
+
+    // No intersection
+    return float3(1e30, 1e30, 1e30);
+}
 
 
 // ========= Appendix =====================
@@ -310,14 +676,7 @@ float sdTriPrism(float3 p, float2 h)
     return max(q.z - h.y, max(q.x * 0.866025 + p.y * 0.5, -p.y) - h.x * 0.5);
 }
 
-			//capsule
-float sdCapsule(float3 p, float3 a, float3 b, float r)
-{
-    float3 pa = p - a, ba = b - a;
-    float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
-    return length(pa - ba * h) - r;
-}
-
+		
 			//infinite cylinder
 float sdInfiniteCylinder(float3 p, float3 c)
 {
@@ -334,12 +693,6 @@ float sdRoundBox(float3 p, float s, float t)
 }
 
 
-			//rounded cylinder
-float sdRoundedCylinder(float3 p, float ra, float rb, float h)
-{
-    float2 d = float2(length(p.xz) - 2.0 * ra + rb, abs(p.y) - h);
-    return min(max(d.x, d.y), 0.0) + length(max(d, 0.0)) - rb;
-}
 
 			//capped cone
 float sdCappedCone(float3 p, float h, float r1, float r2)

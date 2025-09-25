@@ -141,9 +141,24 @@ float GetCloudObjectSurfaceDistance( float3 posWS , float3 viewDir , float maxDi
                 distance = min( distance , length( worldInterectPoint - posWS ));
             }
         }else if ( type == 2.0 ) // box 
-
         {
             float3 interectPoint = rayIntersectBox(localPos, localView, param.x); // x => length 
+            if ( interectPoint.x < 1e30 )
+            {
+                float3 worldInterectPoint = ModelToWorldSpace(interectPoint, cloudPos, cloudQuat, cloudScale);
+                distance = min( distance , length( worldInterectPoint - posWS ));
+            }
+        }else if ( type == 3.0 ) // capsule
+        {
+            float3 interectPoint = rayIntersectCapsule(localPos, localView, param.x, param.y); // x => length , y => radius
+            if ( interectPoint.x < 1e30 )
+            {
+                float3 worldInterectPoint = ModelToWorldSpace(interectPoint, cloudPos, cloudQuat, cloudScale);
+                distance = min( distance , length( worldInterectPoint - posWS ));
+            }
+        }else if ( type == 4.0 ) // cylinder
+        {
+            float3 interectPoint = rayIntersectCylinder(localPos, localView, param.x, param.y); // x => height , y => radius
             if ( interectPoint.x < 1e30 )
             {
                 float3 worldInterectPoint = ModelToWorldSpace(interectPoint, cloudPos, cloudQuat, cloudScale);
@@ -178,6 +193,12 @@ float SampleCloudObject( float3 posWS , float maxDistance )
         }else if ( type == 2.0 ) // box
         {
             sdDis = sdBox( localPos , param.x ); // x => length 
+        }else if ( type == 3.0 ) // capsule
+        {
+            sdDis = sdCapsule( localPos , param.x , param.y ); // x => length , y => radius
+        }else if ( type == 4.0 ) // cylinder
+        {
+            sdDis = sdCylinder( localPos , param.x , param.y ); // x => height , y => radius
         }
        
         distance = min( distance , sdDis );

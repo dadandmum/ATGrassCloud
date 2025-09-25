@@ -1,0 +1,24 @@
+#pragma kernel BuildLodMap
+
+#include "Assets/ATGrassCloud/Shader/Lib/TerrainLib.hlsl"
+
+// Texture2D<float4> HeightMapTexture;
+RWTexture2D<float4> _LodMap;
+
+
+[numthreads(8,8,1)]
+void BuildLodMap(uint3 id : SV_DispatchThreadID){
+    uint2 sectorLoc = id.xy;
+    
+    for(uint lod = _TerrainLODLevel; lod >= 0; lod --){
+        uint sectorCount = GetSectorCountPerNode(lod);
+        uint2 nodeLoc = sectorLoc / sectorCount;
+        uint nodeId = GetNodeId(nodeLoc,lod);
+        NodeDescriptor desc = NodeDescriptors[nodeId];
+        if(desc.branch == 0){
+            _LodMap[sectorLoc] = lod * 1.0 / _TerrainLODLevel;
+            return;
+        }
+    }
+    _LodMap[sectorLoc] = 0;
+}

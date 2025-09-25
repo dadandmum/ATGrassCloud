@@ -1,0 +1,63 @@
+#pragma kernel TraverseQuadTree
+
+#include "Assets/ATGrassCloud/Shader/Lib/TerrainLib.hlsl"
+
+// Texture2D<float4> HeightMapTexture;
+
+ConsumeStructuredBuffer<uint2> ConsumeTileList;
+AppendStructuredBuffer<uint2> AppendTileList;
+AppendStructuredBuffer<uint3> AppendFinalTileList;
+RWStructuredBuffer<TileDescriptor> TileDescriptors;
+
+uniform uint _PassLOD;
+uniform float _TileEvaluationRange;
+
+float2 GetTilePositionWS2(uint2 tileLoc,uint mip){
+    float tileMeterSize = GetTileSize(mip);
+    float tileCount = GetTileCount(mip);
+    float2 tilePositionWS = ((float2)tileLoc - (tileCount-1)*0.5) * tileMeterSize;
+    return tilePositionWS;
+}
+
+float3 GetTilePositionWS(uint2 tileLoc,uint lod){
+    float2 tilePositionWS = GetTilePositionWS2(tileLoc,lod);
+    tilePositionWS += _TerrainOffsetWS.xz;
+
+    // float2 minMaxHeight = HeightMapTexture.mips[lod + 3][tileLoc].xy;
+    // float y = (minMaxHeight.x + minMaxHeight.y) * 0.5 * _WorldSize.y;
+    float y = 0;
+    return float3(tilePositionWS.x,y,tilePositionWS.y);
+}
+
+// QuadTree Traversal
+bool EvaluateTile(uint2 tileLoc,uint lod){
+    float3 positionWS = GetTilePositionWS(tileLoc,lod);
+    float dis = distance(_TerrainCameraPositionWS,positionWS);
+    float tileSize = GetTileSize(lod);
+    float f = dis / (tileSize * _TileEvaluationRange);
+    if( f < 1){
+        return true;
+    }
+    return false;
+}
+
+
+[numthreads(1,1,1)]
+void TraverseQuadTree (uint3 id : SV_DispatchThreadID)
+{
+    uint2 tileLoc = ConsumeTileList.Consume();
+    uint tileId = GetTileId(tileLoc,_PassLOD);
+    TileDescriptor desc = TileDescriptors[tileId];
+    if(_PassLOD > 0 && EvaluateTile(tileLoc,_PassLOD)){
+        //divide
+        AppendTileList.Append(tileLoc * 2);
+        AppendTileList.Append(tileLoc * 2 + uint2(1,0));
+        AppendTileList.Append(tileLoc * 2 + uint2(0,1));
+        AppendTileList.Append(tileLoc * 2 + uint2(1,1));
+        desc.branch = 1;
+    }else{
+        AppendFinalTileList.Append(uint3(tileLoc,_PassLOD));
+        desc.branch = 0;
+    }
+    TileDescriptors[tileId] = desc;
+}

@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: 032cac4ffb766ea4f9c87821d2afa976
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - heightMap: {instanceID: 0}
+  - normalMap: {instanceID: 0}
+  - SplatMap: {instanceID: 0}
+  - SplatMap2: {instanceID: 0}
+  - traverseQuadTreeShader: {fileID: 7200000, guid: ce206a9496fd46b4ea6a569732249b06, type: 3}
+  - buildLodMapShader: {fileID: 7200000, guid: 0b006d07382f2984394926272c7673f0, type: 3}
+  - buildPatchesShader: {fileID: 7200000, guid: 32d85682161558343b88f88418f4adba, type: 3}
+  - material: {fileID: 2100000, guid: 035230246f6e8194dbe0b724ddaa5318, type: 2}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
