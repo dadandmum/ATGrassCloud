@@ -2,10 +2,12 @@ Shader "ATGrassCloud/ATGPUTerrainDebug"
 {
     Properties
     {
-        _MainTex ("Texture", 2D) = "white" {}
-        _HeightMap ("Texture", 2D) = "white" {}
-        _NormalMap ("Texture", 2D) = "white" {}
-        _SplatMap ("Texture", 2D) = "white" {}
+        _MainTex ("Main Tex", 2D) = "white" {}
+        _HeightMap ("Height Map", 2D) = "white" {}
+        _NormalMap ("Normal Map", 2D) = "white" {}
+        _NormalIntensity ("Normal Intensity", Range(0, 1)) = 0.5
+        _SplatMap0 ("Splat Map 0 ", 2D) = "white" {}
+        _SplatMap1 ("Splat Map 1", 2D) = "white" {}
     }
     SubShader
     {
@@ -27,7 +29,7 @@ Shader "ATGrassCloud/ATGPUTerrainDebug"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "Assets/ATGrassCloud/Shader/Lib/TerrainLib.hlsl"
 
-            StructuredBuffer<RenderPatch> PatchList;
+            StructuredBuffer<RenderPatch> _PatchList;
 
             struct appdata
             {
@@ -43,87 +45,21 @@ Shader "ATGrassCloud/ATGPUTerrainDebug"
                 half3 color: TEXCOORD1;
             };
 
-            sampler2D _MainTex;
-            float4 _MainTex_ST;
-            sampler2D _HeightMap;
-            sampler2D _NormalMap;
+            TEXTURE2D( _MainTex);
+            SAMPLER(sampler_MainTex);
+            TEXTURE2D( _HeightMap);
+            SAMPLER(sampler_HeightMap);
+            TEXTURE2D( _NormalMap);
+            SAMPLER(sampler_NormalMap);
+            uniform float _NormalIntensity;
+            TEXTURE2D( _SplatMap0);
+            SAMPLER(sampler_SplatMap0);
+            TEXTURE2D( _SplatMap1);
+            SAMPLER(sampler_SplatMap1);
             uniform float3 _WorldSize;
             float4x4 _WorldToNormalMapMatrix;
 
-            static half3 debugColorForMip[6] = {
-                half3(0,1,0),
-                half3(0,0,1),
-                half3(1,0,0),
-                half3(1,1,0),
-                half3(0,1,1),
-                half3(1,0,1),
-            };
-
-            float3 TransformNormalToWorldSpace(float3 normal){
-                return SafeNormalize(mul(normal,(float3x3)_WorldToNormalMapMatrix));
-            }
-
-
-            float3 SampleNormal(float2 uv){
-                float3 normal;
-                normal.xz = tex2Dlod(_NormalMap,float4(uv,0,0)).xy * 2 - 1;
-                normal.y = sqrt(max(0,1 - dot(normal.xz,normal.xz)));
-                normal = TransformNormalToWorldSpace(normal);
-                return normal;
-            }
-
-            
-            void FixLODConnectSeam(inout float4 vertex,inout float2 uv,RenderPatch patch){
-                uint4 lodTrans = patch.lodTrans;
-                uint2 vertexIndex = floor((vertex.xz + PATCH_MESH_SIZE * 0.5 + 0.01) / PATCH_MESH_GRID_SIZE);
-                float uvGridStrip = 1.0/PATCH_MESH_GRID_COUNT;
-
-                uint lodDelta = lodTrans.x;
-                if(lodDelta > 0 && vertexIndex.x == 0){
-                    uint gridStripCount = pow(2,lodDelta);
-                    uint modIndex = vertexIndex.y % gridStripCount;
-                    if(modIndex != 0){
-                        vertex.z -= PATCH_MESH_GRID_SIZE * modIndex;
-                        uv.y -= uvGridStrip * modIndex;
-                        return;
-                    }
-                }
-
-                lodDelta = lodTrans.y;
-                if(lodDelta > 0 && vertexIndex.y == 0){
-                    uint gridStripCount = pow(2,lodDelta);
-                    uint modIndex = vertexIndex.x % gridStripCount;
-                    if(modIndex != 0){
-                        vertex.x -= PATCH_MESH_GRID_SIZE * modIndex;
-                        uv.x -= uvGridStrip * modIndex;
-                        return;
-                    }
-                }
-
-                lodDelta = lodTrans.z;
-                if(lodDelta > 0 && vertexIndex.x == PATCH_MESH_GRID_COUNT){
-                    uint gridStripCount = pow(2,lodDelta);
-                    uint modIndex = vertexIndex.y % gridStripCount;
-                    if(modIndex != 0){
-                        vertex.z += PATCH_MESH_GRID_SIZE * (gridStripCount - modIndex);
-                        uv.y += uvGridStrip * (gridStripCount- modIndex);
-                        return;
-                    }
-                }
-
-                lodDelta = lodTrans.w;
-                if(lodDelta > 0 && vertexIndex.y == PATCH_MESH_GRID_COUNT){
-                    uint gridStripCount = pow(2,lodDelta);
-                    uint modIndex = vertexIndex.x % gridStripCount;
-                    if(modIndex != 0){
-                        vertex.x += PATCH_MESH_GRID_SIZE * (gridStripCount- modIndex);
-                        uv.x += uvGridStrip * (gridStripCount- modIndex);
-                        return;
-                    }
-                }
-            }
-
-            float3 ApplyNodeDebug(RenderPatch patch,float3 vertex){
+            float3 ApplyTileDebug(RenderPatch patch,float3 vertex){
                 uint nodeCount = (uint)(5 * pow(2,5 - patch.lod));
                 float nodeSize = _WorldSize.x / nodeCount;
                 uint2 nodeLoc = floor((patch.position + _WorldSize.xz * 0.5) / nodeSize);
@@ -131,73 +67,75 @@ Shader "ATGrassCloud/ATGPUTerrainDebug"
                 vertex.xz = nodeCenterPosition + (vertex.xz - nodeCenterPosition) * 0.95;
                 return vertex;
             }
-            uniform float4x4 _HizCameraMatrixVP;
-            float3 TransformWorldToUVD(float3 positionWS)
-            {
-                float4 positionHS = mul(_HizCameraMatrixVP, float4(positionWS, 1.0));
-                float3 uvd = positionHS.xyz / positionHS.w;
-                uvd.xy = (uvd.xy + 1) * 0.5;
-                return uvd;
+
+
+            float3 TransformNormalToWorldSpace(float3 normal){
+                return SafeNormalize(mul(normal,(float3x3)_WorldToNormalMapMatrix));
+            }
+
+
+            float3 SampleNormal(float2 uv){
+                // float3 normal;
+                // normal.xz = tex2Dlod(_NormalMap,float4(uv,0,0)).xy * 2 - 1;
+                // normal.y = sqrt(max(0,1 - dot(normal.xz,normal.xz)));
+                // normal = TransformNormalToWorldSpace(normal);
+                // return normal;
+
+                float3 normal;
+                normal.xz = SAMPLE_TEXTURE2D_LOD(_NormalMap, sampler_NormalMap, uv, 0).xy * 2 - 1;
+                normal.y = sqrt(max(0,1 - dot(normal.xz,normal.xz)));
+                normal = TransformNormalToWorldSpace(normal) * _NormalIntensity;
+                return normal;
             }
 
             v2f vert (appdata v)
             {
                 v2f o;
                 
-                float4 inVertex = v.vertex;
+                float4 positionOS = v.vertex;
                 float2 uv = v.uv;
 
-                RenderPatch patch = PatchList[v.instanceID];
-                #if ENABLE_LOD_SEAMLESS
-                FixLODConnectSeam(inVertex,uv,patch);
-                #endif
+                RenderPatch patch = _PatchList[v.instanceID];
+
                 uint lod = patch.lod;
                 float scale = pow(2,lod);
 
-                uint4 lodTrans = patch.lodTrans;
-                
+                // uint4 lodTrans = patch.lodTrans;
 
-                inVertex.xz *= scale;
+                positionOS.xz *= scale;
                 #if ENABLE_PATCH_DEBUG
-                inVertex.xz *= 0.9;
+                positionOS.xz *= 0.9;
                 #endif
-                inVertex.xz += patch.position;
-
-                #if ENABLE_NODE_DEBUG
-                inVertex.xyz = ApplyNodeDebug(patch,inVertex.xyz);
+                float3 positionWS = positionOS.xyz;
+                positionWS.xz += patch.position.xy;
+                #if ENABLE_TILE_DEBUG
+                positionWS = ApplyTileDebug(patch,positionWS);
                 #endif
 
-                float2 heightUV = (inVertex.xz + (_WorldSize.xz * 0.5) + 0.5) / (_WorldSize.xz + 1);
-                float height = tex2Dlod(_HeightMap,float4(heightUV,0,0)).r;
-                inVertex.y = height * _WorldSize.y;
+                // float2 heightUV = (positionWS.xz + (_WorldSize.xz * 0.5) + 0.5) / (_WorldSize.xz + 1);
+                // float height = SAMPLE_TEXTURE2D_LOD(_HeightMap, sampler_HeightMap, heightUV, 0).r;
+                // positionWS.y = height * _WorldSize.y;
 
-                float3 normal = SampleNormal(heightUV);
-                Light light = GetMainLight();
-                o.color = max(0.05,dot(light.direction,normal));
+                // float3 normal = SampleNormal(heightUV);
+                // Light light = GetMainLight();
+                // o.color = max(0.05,dot(light.direction,normal));
 
-                float4 vertex = TransformObjectToHClip(inVertex.xyz);
+                float4 vertex = TransformObjectToHClip(positionWS.xyz);
                 o.vertex = vertex;
                 o.uv = uv * scale * 8;
 
-                #if ENABLE_MIP_DEBUG
-                
-                uint4 lodColorIndex = lod + lodTrans;
-                o.color *= (debugColorForMip[lodColorIndex.x] + 
-                debugColorForMip[lodColorIndex.y] +
-                debugColorForMip[lodColorIndex.z] +
-                debugColorForMip[lodColorIndex.w]) * 0.25;
-                #endif
-
-                // o.color = half4(TransformWorldToUVD(inVertex.xyz).xy,0,1);
                 return o;
             }
 
             half4 frag (v2f i) : SV_Target
             {
                 // sample the texture
-                half4 col = tex2D(_MainTex, i.uv);
+                half4 col0 = SAMPLE_TEXTURE2D_LOD(_SplatMap0, sampler_SplatMap0, i.uv, 0);
+                half4 col1 = SAMPLE_TEXTURE2D_LOD(_SplatMap1, sampler_SplatMap1, i.uv, 0);
+                
+                half4 col = max( col0 , col1) ;
                 col.rgb *= i.color;
-                return col;
+                return half4(col.rgb,1.0);
             }
             ENDHLSL
         }

@@ -15,23 +15,42 @@ MonoBehaviour:
   LODLevel: 6
   TopLevelTileCount: 5
   tileSize: 6.4
-  totalTileCount: 0
+  totalTileCount: 34125
   worldSizeXZ: 1024
   worldSizeHeight: 200
-  terrainOffsetWS: {x: 0, y: 0, z: 0}
-  terrainPivotCenter: {x: 0.5, y: 0, z: 0.5}
-  tileEvaluationRange: 1.2
-  worldSize: {x: 0, y: 0, z: 0}
+  terrainOffsetWS: {x: -0, y: 0, z: -0}
+  terrainPivotCenter: {x: 0, y: 0, z: 0}
+  tileEvaluationRange: 2
+  worldSize: {x: 1024, y: 200, z: 1024}
+  UseFrustumCull: 1
+  UseHiZOcclusionCull: 0
+  boundsHeightRedundance: 4
+  hiZDepthBias: 0.2
+  lodSeamless: 1
   textureSize: 2048
   heightMap: {fileID: 2800000, guid: e4a5f70c815606046a4d2c20cad4c53c, type: 3}
+  MinMaxHeightMap:
+  - {fileID: 2800000, guid: 734866e2216dfb54795bd4006792734f, type: 3}
+  - {fileID: 2800000, guid: 5f089611cd42b6c45aaf2b1da22ead19, type: 3}
+  - {fileID: 2800000, guid: 6f6ad234044772747b365407f801f727, type: 3}
+  - {fileID: 2800000, guid: 44dd4c4f9f4674d4484c11bd54f9f4f2, type: 3}
+  - {fileID: 2800000, guid: 79da9c667489b3e4c90a929d829ddd15, type: 3}
+  - {fileID: 2800000, guid: 780e587e8c031324eb5e8c830a6cda4f, type: 3}
+  - {fileID: 2800000, guid: ea4110f82d022844d9a754b0bc07ced6, type: 3}
   normalMap: {fileID: 2800000, guid: 371c44b39d09b494aa7947b53c7ba5d3, type: 3}
-  SplatMap: {fileID: 2800000, guid: 33bd03cb7a3b4934283bba731e8180c2, type: 3}
-  SplatMap2: {fileID: 2800000, guid: bb0b875b6b2501f42909274441b1bc14, type: 3}
-  patchMesh: {fileID: 0}
+  SplatMap0: {fileID: 2800000, guid: 33bd03cb7a3b4934283bba731e8180c2, type: 3}
+  SplatMap1: {fileID: 2800000, guid: b3bd75a2aa0064c4bb9c31b37cb53498, type: 3}
+  patchMesh: {fileID: 4300000, guid: 3ecb359d342f2a441b9193875466468f, type: 2}
   meshSize: 16
   outputDir: Assets/ATGrassCloud/Data/Terrain/Mesh
   traverseQuadTreeShader: {fileID: 7200000, guid: ce206a9496fd46b4ea6a569732249b06, type: 3}
   buildLodMapShader: {fileID: 7200000, guid: 0b006d07382f2984394926272c7673f0, type: 3}
   buildPatchesShader: {fileID: 7200000, guid: 32d85682161558343b88f88418f4adba, type: 3}
+  minMaxHeightsShader: {fileID: 7200000, guid: 9082e00f1eee3c543a6aa78251e823cf, type: 3}
   material: {fileID: 2100000, guid: 035230246f6e8194dbe0b724ddaa5318, type: 2}
+  UpdateFromMaterial: 1
   debugInfoQuadTree: 0
+  debugInfoDesctiption: 0
+  debugInfoCulledBatch: 0
+  debugRenderPatch: 0
+  debugRenderTile: 1

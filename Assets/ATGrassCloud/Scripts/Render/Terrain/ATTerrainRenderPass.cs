@@ -20,6 +20,19 @@ namespace ATGrassCloud
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
+            if ( data.material == null )
+            {
+                return;
+            }
+
+            CommandBuffer cmd = CommandBufferPool.Get("[AT] Terrain Render Pass");
+
+            renderer.Render(context, ref renderingData, cmd);
+            
+            context.ExecuteCommandBuffer(cmd);
+            cmd.Clear();
+
+            CommandBufferPool.Release(cmd);
         }
 
         override public void FrameCleanup(CommandBuffer cmd)

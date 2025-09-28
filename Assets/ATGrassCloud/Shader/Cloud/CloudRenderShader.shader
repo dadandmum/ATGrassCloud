@@ -43,7 +43,7 @@
         float2 ndp = output.texcoord * 2 - 1.0;
 
         float3 viewVector = mul(unity_CameraInvProjection, float4(ndp, 0, -1.0 ));
-        output.viewDir = mul(unity_CameraToWorld, float4(viewVector,0));
+        output.viewDir = mul(unity_CameraToWorld, float4(viewVector.xyz,0)).xyz;
 
         return output;
     }
@@ -74,7 +74,7 @@
             // #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
             // #pragma multi_compile _ _ADDITIONAL_LIGHT_SHADOWS
             #pragma multi_compile _ _SHADOWS_SOFT
-            #pragma multi_compile _ _DEBUG_CLOUD
+            #pragma shader_feature _DEBUG_CLOUD
 
             float4 _CascadeRange;
 

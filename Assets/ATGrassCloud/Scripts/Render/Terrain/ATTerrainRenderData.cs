@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Sirenix.OdinInspector;
+using Palmmedia.ReportGenerator.Core;
 
 namespace ATGrassCloud
 {
@@ -21,7 +22,10 @@ namespace ATGrassCloud
         [TabGroup("Basic Data")]
         [OnValueChanged("UpdateTileInfo")]
         [Range(1, 10)]
-        public int TopLevelTileCount = 5; 
+        public int TopLevelTileCount = 5;
+        public int GetTopLevelTileCountTotal(){
+            return TopLevelTileCount * TopLevelTileCount;
+        }
         [TabGroup("Basic Data")]
         [ReadOnly]
         public float tileSize = 6.4f;
@@ -50,11 +54,27 @@ namespace ATGrassCloud
         [OnValueChanged("UpdateTileInfo")]
         public float tileEvaluationRange = 1.2f;
 
-
-
         [TabGroup("Basic Data")]
         [ReadOnly]
         public Vector3 worldSize = Vector3.zero;
+
+        [Header("Setting")]
+
+        [TabGroup("Basic Data")]
+        public bool UseFrustumCull;
+        [TabGroup("Basic Data")]
+        public bool UseHiZOcclusionCull;
+        [TabGroup("Basic Data")]
+        [Range(0,10.0f)]
+        public float boundsHeightRedundance = 4.0f;
+
+        [TabGroup("Basic Data")]
+        [Range(0,2f)]
+        public float hiZDepthBias = 0.2f;
+
+        [Title("Rendering")]
+        [TabGroup("Basic Data")]
+        public bool lodSeamless = true;
 
         public void UpdateTileInfo()
         {
@@ -86,7 +106,7 @@ namespace ATGrassCloud
         /// </summary>
         public float GetTileSize(int lodLevel , bool clampByLODLevel = false)
         {
-            var level = Mathf.Clamp(lodLevel, 0, clampByLODLevel ? LODLevel - 1 : MAX_TERRAIN_LOD_LEVEL - 1);
+            var level = Mathf.Clamp(LODLevel - 1 - lodLevel, 0, clampByLODLevel ? LODLevel: MAX_TERRAIN_LOD_LEVEL);
             return worldSizeXZ / TopLevelTileCount / Mathf.Pow(2.0f, level);
         }
         /// <summary>
@@ -95,28 +115,28 @@ namespace ATGrassCloud
         /// </summary>
         public float GetPatchExtent(int lodLevel , bool clampByLODLevel = false)
         {
-           return GetTileSize(lodLevel, clampByLODLevel) / 16.0f;
+           return GetTileSize(lodLevel, clampByLODLevel) / meshSize;
         }
 
         /// <summary>
-        /// Gets the number of sectors (or sub-tiles) per node in one dimension at the given LOD level.
+        /// Gets the number of sectors (or sub-tiles) per tile in one dimension at the given LOD level.
         /// Sector count increases with LOD level: 1 at level 0, 4 at level 1, 16 at level 2, etc.
-        /// Total sectors per node = (return value)^2.
+        /// Total sectors per tile = (return value)^2.
         /// </summary>        
-        public int GetSectorCountPerNode(int lodLevel , bool clampByLODLevel = false)
+        public int GetSectorCountPerTilePerRow(int lodLevel , bool clampByLODLevel = false)
         {
-            var level = Mathf.Clamp(lodLevel, 0, clampByLODLevel ? LODLevel - 1 : MAX_TERRAIN_LOD_LEVEL - 1);
-            return 1 << (level * 2);
+            var level = Mathf.Clamp(lodLevel, 0, clampByLODLevel ? LODLevel : MAX_TERRAIN_LOD_LEVEL);
+            return 1 << (level);
         }
 
         /// <summary>
         /// Gets the total number of tiles along one row (X or Z axis) in the entire terrain at the given LOD level.
         /// As LOD increases, more tiles are used to represent the same world area with higher detail.
         /// </summary>
-        public int GetTileCountPerRow( int lodLevel , bool clampByLODLevel = false)
+        public int GetTileCountInRow( int lodLevel , bool clampByLODLevel = false)
         {
-            var level = Mathf.Clamp(lodLevel, 0, clampByLODLevel ? LODLevel - 1 : MAX_TERRAIN_LOD_LEVEL - 1);
-            return ( TopLevelTileCount) * ( 1 << (level) );
+            var level = Mathf.Clamp( LODLevel - 1 - lodLevel, 0, clampByLODLevel ? LODLevel : MAX_TERRAIN_LOD_LEVEL);
+            return ( TopLevelTileCount) * ( 1 << level );
         }
         /// <summary>
         /// Generates an array of Vector4 parameters for all LOD levels, which can be passed to shaders.
@@ -132,15 +152,15 @@ namespace ATGrassCloud
             Vector4[] worldLodParams = new Vector4[MAX_TERRAIN_LOD_LEVEL];
             for (int i = 0; i < MAX_TERRAIN_LOD_LEVEL; i++)
             {
-                int lod = LODLevel - i - 1 ;
-                worldLodParams[i] = new Vector4( GetTileSize(lod , true) , GetPatchExtent(lod , true) , GetTileCountPerRow(lod , true) , GetSectorCountPerNode(lod , true));
+                int lod = i;
+                worldLodParams[i] = new Vector4( GetTileSize(lod , true) , GetPatchExtent(lod , true) , GetTileCountInRow(lod , true) , GetSectorCountPerTilePerRow(lod , true));
             }
             return worldLodParams;
         }
 
         public int GetTileIDOffset(int lodLevel , bool clampByLODLevel = false)
         {
-            var level = Mathf.Clamp(lodLevel, 0, clampByLODLevel ? LODLevel - 1 : MAX_TERRAIN_LOD_LEVEL - 1);
+            var level = Mathf.Clamp(lodLevel, 0, clampByLODLevel ? LODLevel: MAX_TERRAIN_LOD_LEVEL);
 
             int offset = 0;
             for (int i = 0; i < level; i++)
@@ -150,13 +170,25 @@ namespace ATGrassCloud
             return offset;
         }
 
-        public float[] GetTileIDOffsetArray()
+        public float[] GetTileIDOffsetArrayFloat()
         {
             float[] tileOffsets = new float[MAX_TERRAIN_LOD_LEVEL]; 
             for (int i = 0; i < MAX_TERRAIN_LOD_LEVEL; i++)
             {
                 int lod = LODLevel - i - 1 ;
                 tileOffsets[i] = (float)GetTileIDOffset(lod , true );
+            }
+            return tileOffsets;
+        }
+
+
+        public int[] GetTileIDOffsetArrayInt()
+        {
+            int[] tileOffsets = new int[MAX_TERRAIN_LOD_LEVEL]; 
+            for (int i = 0; i < MAX_TERRAIN_LOD_LEVEL; i++)
+            {
+                int lod = LODLevel - i - 1 ;
+                tileOffsets[i] = GetTileIDOffset(lod , true );
             }
             return tileOffsets;
         }
@@ -181,14 +213,61 @@ namespace ATGrassCloud
 
         [TabGroup("Terrain Data")]
         [PreviewField(128)]
+        public List<Texture2D> MinMaxHeightMap;
+
+        [TabGroup("Terrain Data")]
+        [PreviewField(128)]
         public Texture2D normalMap;
 
         [TabGroup("Terrain Data")]
         [PreviewField(128)]
-        public Texture2D SplatMap;
+        public Texture2D SplatMap0;
         [TabGroup("Terrain Data")]
         [PreviewField(128)]
-        public Texture2D SplatMap2;
+        public Texture2D SplatMap1;
+
+        [TabGroup("Terrain Data")]
+        [Button]
+        public void GenerateMinMaxHeightMap()
+        {
+            if (heightMap == null)
+            {
+                Debug.LogError("Height Map is null");
+                return;
+            }
+#if UNITY_EDITOR
+            ATTerrainUtils.GenerateMinMaxHeightMapFromSelectedHeightMap(heightMap, minMaxHeightsShader, textureSize, MAX_TERRAIN_LOD_LEVEL);
+
+            string hmFile = UnityEditor.AssetDatabase.GetAssetPath(heightMap);
+            string dir = System.IO.Path.GetDirectoryName(hmFile);
+            string name = System.IO.Path.GetFileNameWithoutExtension(hmFile);
+            dir = $"{dir}/{name}";
+            MinMaxHeightMap = new List<Texture2D>();
+            // get all file in dir 
+            string[] files = System.IO.Directory.GetFiles(dir);
+            foreach (var texPath in files)
+            {
+                if (texPath.EndsWith(".png"))
+                {
+                     var importer = UnityEditor.AssetImporter.GetAtPath(texPath) as UnityEditor.TextureImporter;
+                     if(importer != null){
+                        var setting = importer.GetPlatformTextureSettings("Standalone");
+                        if(setting != null){
+                            setting.overridden = true;
+                            setting.format = UnityEditor.TextureImporterFormat.RGFloat;
+                        }
+                         importer.SetPlatformTextureSettings(setting);
+
+                        importer.SaveAndReimport();
+                        UnityEditor.AssetDatabase.WriteImportSettingsIfDirty(texPath);
+                        UnityEditor.AssetDatabase.ImportAsset(texPath, UnityEditor.ImportAssetOptions.ForceUpdate);
+                     }
+        
+                    MinMaxHeightMap.Add(UnityEditor.AssetDatabase.LoadAssetAtPath<Texture2D>(texPath));
+                }
+            }
+#endif 
+        }
 
         // ======================= Patch Mesh ================================
         [TabGroup("Mesh")]
@@ -230,16 +309,28 @@ namespace ATGrassCloud
         public ComputeShader buildLodMapShader;
         [TabGroup("Reference")]
         public ComputeShader buildPatchesShader;
+        [TabGroup("Reference")]
+        public ComputeShader minMaxHeightsShader;
 
         [TabGroup("Reference")]
         public Material material;
 
-        
+        [TabGroup("Reference")]
+        public bool UpdateFromMaterial = false;
+
+
 
         // ======================= Debug =====================
         [BoxGroup("Debug")]
         public bool debugInfoQuadTree = false;
-        
+        [BoxGroup("Debug")]
+        public bool debugInfoDesctiption = false;
+        [BoxGroup("Debug")]
+        public bool debugInfoCulledBatch = false;
+        [BoxGroup("Debug")]
+        public bool debugRenderPatch = false;
+        [BoxGroup("Debug")]
+        public bool debugRenderTile = false;
 
     }
 }

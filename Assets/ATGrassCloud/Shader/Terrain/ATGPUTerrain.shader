@@ -2,10 +2,12 @@ Shader "ATGrassCloud/ATGPUTerrain"
 {
     Properties
     {
-        _MainTex ("Texture", 2D) = "white" {}
-        _HeightMap ("Texture", 2D) = "white" {}
-        _NormalMap ("Texture", 2D) = "white" {}
-        _SplatMap ("Texture", 2D) = "white" {}
+        _MainTex ("Main Tex", 2D) = "white" {}
+        _HeightMap ("Height Map", 2D) = "white" {}
+        _NormalMap ("Normal Map", 2D) = "white" {}
+        _NormalIntensity ("Normal Intensity", Range(0, 1)) = 0.5
+        _SplatMap0 ("Splat Map 0 ", 2D) = "white" {}
+        _SplatMap1 ("Splat Map 1", 2D) = "white" {}
     }
     SubShader
     {
@@ -47,8 +49,12 @@ Shader "ATGrassCloud/ATGPUTerrain"
             float4 _MainTex_ST;
             sampler2D _HeightMap;
             sampler2D _NormalMap;
+            uniform float _NormalIntensity;
+            sampler2D _SplatMap0;
+            sampler2D _SplatMap1;
             uniform float3 _WorldSize;
             float4x4 _WorldToNormalMapMatrix;
+            uniform int _PatchMeshGridSize;
 
             static half3 debugColorForMip[6] = {
                 half3(0,1,0),
@@ -75,8 +81,8 @@ Shader "ATGrassCloud/ATGPUTerrain"
             
             void FixLODConnectSeam(inout float4 vertex,inout float2 uv,RenderPatch patch){
                 uint4 lodTrans = patch.lodTrans;
-                uint2 vertexIndex = floor((vertex.xz + PATCH_MESH_SIZE * 0.5 + 0.01) / PATCH_MESH_GRID_SIZE);
-                float uvGridStrip = 1.0/PATCH_MESH_GRID_COUNT;
+                uint2 vertexIndex = floor((vertex.xz + _PatchMeshGridSize * PATCH_MESH_GRID_SIZE * 0.5 + 0.01) / PATCH_MESH_GRID_SIZE);
+                float uvGridStrip = 1.0 / _PatchMeshGridSize;
 
                 uint lodDelta = lodTrans.x;
                 if(lodDelta > 0 && vertexIndex.x == 0){
@@ -101,7 +107,7 @@ Shader "ATGrassCloud/ATGPUTerrain"
                 }
 
                 lodDelta = lodTrans.z;
-                if(lodDelta > 0 && vertexIndex.x == PATCH_MESH_GRID_COUNT){
+                if(lodDelta > 0 && vertexIndex.x == _PatchMeshGridSize){
                     uint gridStripCount = pow(2,lodDelta);
                     uint modIndex = vertexIndex.y % gridStripCount;
                     if(modIndex != 0){
@@ -112,7 +118,7 @@ Shader "ATGrassCloud/ATGPUTerrain"
                 }
 
                 lodDelta = lodTrans.w;
-                if(lodDelta > 0 && vertexIndex.y == PATCH_MESH_GRID_COUNT){
+                if(lodDelta > 0 && vertexIndex.y == _PatchMeshGridSize){
                     uint gridStripCount = pow(2,lodDelta);
                     uint modIndex = vertexIndex.x % gridStripCount;
                     if(modIndex != 0){

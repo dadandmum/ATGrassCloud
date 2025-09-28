@@ -292,10 +292,9 @@ void CSNoise(uint3 id : SV_DispatchThreadID)
 {
 	float3 pos = id / (float)resolution; 
 	float layerA = worley(pos, frequencyA, pointsA);
-	float layerB;
-	float layerC;
+	float layerB=0.0;
+	float layerC=0.0;
 	
-
 	if (noiseType == 0)
 	{
 		layerB = worley(pos, frequencyB, pointsB);
@@ -313,8 +312,8 @@ void CSNoise(uint3 id : SV_DispatchThreadID)
 	}
 	else if (noiseType == 3)
 	{
-		layerB = curl_noise(pos * exp( frequencyB * 0.05));
-		layerC = curl_noise(pos * exp( frequencyC * 0.05));
+		layerB = curl_noise(pos * exp( frequencyB * 0.05)).x;
+		layerC = curl_noise(pos * exp( frequencyC * 0.05)).x;
 	}
 	
 	// Average Layers and invert

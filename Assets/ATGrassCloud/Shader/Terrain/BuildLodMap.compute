@@ -1,24 +1,32 @@
 #pragma kernel BuildLodMap
 
 #include "Assets/ATGrassCloud/Shader/Lib/TerrainLib.hlsl"
-
+   
 // Texture2D<float4> HeightMapTexture;
-RWTexture2D<float4> _LodMap;
-
-
+RWTexture2D<float4> _LODMapTexture;
+RWStructuredBuffer<uint> TileDescriptors;
+ 
 [numthreads(8,8,1)]
 void BuildLodMap(uint3 id : SV_DispatchThreadID){
     uint2 sectorLoc = id.xy;
     
-    for(uint lod = _TerrainLODLevel; lod >= 0; lod --){
-        uint sectorCount = GetSectorCountPerNode(lod);
-        uint2 nodeLoc = sectorLoc / sectorCount;
-        uint nodeId = GetNodeId(nodeLoc,lod);
-        NodeDescriptor desc = NodeDescriptors[nodeId];
-        if(desc.branch == 0){
-            _LodMap[sectorLoc] = lod * 1.0 / _TerrainLODLevel;
+    float4 result = float4(1,0,0,0);
+
+    [unroll] 
+    for(uint i = 0; i <= MAX_TERRAIN_LOD; i++) {
+        uint lod = min( _TerrainLODLevel - 1 , MAX_TERRAIN_LOD - 1 - i);
+        uint sectorCount = GetSectorCountPerTilePerRow(lod);
+        uint2 tileLoc = floor(sectorLoc / sectorCount);
+        uint tileId = GetTileId(tileLoc,lod);
+        uint desc = TileDescriptors[tileId];
+
+        // result.x = desc == 0 ? min( result.x , lod * 1.0  / MAX_TERRAIN_LOD) : result.x;
+        if ( desc == 0) 
+        { 
+            result.x = lod * 1.0 / MAX_TERRAIN_LOD;
+            _LODMapTexture[sectorLoc] = result;
             return;
         }
-    }
-    _LodMap[sectorLoc] = 0;
+    } 
+    _LODMapTexture[sectorLoc] = result;
 }

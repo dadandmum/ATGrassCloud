@@ -51,7 +51,7 @@ float _MultipleScatteringStep;
 
 float _DetailNoiseScale;
 float _DetailNoiseMultiplier;
-float3 _DetailNoiseWeights;
+float4 _DetailNoiseWeights;
 float3 _NoiseVelocity;
 float _DetailShapeNoiseInfluenceExtend;
 float _DetailShapeNoiseInfluenceFade;
@@ -296,9 +296,9 @@ float powerScale( float t , float power )
 {
     if ( t > 0.5 )
     {
-        return pow( ( t - 0.5 ) * 2.0 , power ) * 0.5 + 0.5;
+        return pow( saturate(( t - 0.5 ) * 2.0) , power ) * 0.5 + 0.5;
     }else {
-        return - pow( - ( t - 0.5 ) * 2.0 , power ) * 0.5 + 0.5;
+        return - pow( saturate(- ( t - 0.5 ) * 2.0) , power ) * 0.5 + 0.5;
 
     }
 }
@@ -306,7 +306,7 @@ float powerScale( float t , float power )
 
 float HenyeyGreenstein(float g, float angle) {
     float gg = g * g;
-	return (1.0f - gg) / (4.0f * 3.14159 * pow(1 + gg - 2.0f * g * angle, 1.5f));
+	return (1.0f - gg) / (4.0f * 3.14159 * pow( max( 0 , 1 + gg - 2.0f * g * angle) , 1.5f));
 }
 
 float beer(float d) {
@@ -397,18 +397,18 @@ float3 cloud_MultipleScattering( float3 posWS , float3 viewDir, float maxDistanc
     float3 right = cross( forward , float3(0,1,0) );
     float3 up = cross( right , forward );
 
-    int scatterIndex = 0;
+    uint scatterIndex = 0;
     for( float k = 0 ; k < stepCount ; k = k + 1.0f )
     {
         float stepDistance = stepSize * k;
         for (float i = 0; i < sampleCount ; i = i + 1.0f ) {
             
-            float3 scatterDir = _ScatterDirs[scatterIndex];
+            float3 scatterDir = _ScatterDirs[scatterIndex].xyz;
             scatterIndex = (scatterIndex + 1) % 20;
             float3 sampleDir = normalize( scatterDir.x * right + scatterDir.y * up + scatterDir.z * forward);
 
             float3 pos = posWS + sampleDir * stepDistance;
-            float density = max(0, SampleDensityCloudObject(pos, maxDistance) * stepDistance);
+            float density = max(0, SampleDensityCloudObject(pos, maxDistance).x * stepDistance);
             scattering += beer(density * _MSBeerAbsorption) * ATGI_SampleSHbyPosWS( pos , sampleDir ) * hgScatterPure(viewDir, sampleDir);
         }
     }
@@ -488,7 +488,7 @@ float4 cloud_Raymarch( float3 origin , float3 dir , float2 uv , float3 lighting,
                 debugIllumi += transmit * density * multipleScattering * _MultipleScatterIntensity;
             }else if ( _DebugMode == 10 )
             {
-                float3 ambient = _AmbientColor * _AmbientPower;
+                float3 ambient = _AmbientColor.xyz * _AmbientPower;
                 debugIllumi += transmit * density * ambient;
             }
 
@@ -507,7 +507,7 @@ float4 cloud_Raymarch( float3 origin , float3 dir , float2 uv , float3 lighting,
             {
                 multipleScattering = cloud_MultipleScattering( posWS , dir, maxDistance ) * _MultipleScatterIntensity;
             }
-            float3 ambient = _AmbientColor * _AmbientPower;
+            float3 ambient = _AmbientColor.xyz * _AmbientPower;
             // illumination += transmit * density * ( directionalLighting + multipleScattering + _AmbientColor * beer( density * _AmbientPower * 20.0 ) );
             illumination += transmit * density * ( directionalLighting + multipleScattering + ambient );
 
