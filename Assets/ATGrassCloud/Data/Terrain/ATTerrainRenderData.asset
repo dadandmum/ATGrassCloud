@@ -20,13 +20,16 @@ MonoBehaviour:
   worldSizeHeight: 200
   terrainOffsetWS: {x: -0, y: 0, z: -0}
   terrainPivotCenter: {x: 0, y: 0, z: 0}
-  tileEvaluationRange: 2
+  tileEvaluationRange: 2.2
+  tileBufferSize: 75
   worldSize: {x: 1024, y: 200, z: 1024}
   UseFrustumCull: 1
   UseHiZOcclusionCull: 0
-  boundsHeightRedundance: 4
+  boundsHeightRedundance: 0.2
   hiZDepthBias: 0.2
   lodSeamless: 1
+  snapCamera: 0
+  onlyUpdateWhenCameraMove: 0
   textureSize: 2048
   heightMap: {fileID: 2800000, guid: e4a5f70c815606046a4d2c20cad4c53c, type: 3}
   MinMaxHeightMap:
@@ -41,16 +44,21 @@ MonoBehaviour:
   SplatMap0: {fileID: 2800000, guid: 33bd03cb7a3b4934283bba731e8180c2, type: 3}
   SplatMap1: {fileID: 2800000, guid: b3bd75a2aa0064c4bb9c31b37cb53498, type: 3}
   patchMesh: {fileID: 4300000, guid: 3ecb359d342f2a441b9193875466468f, type: 2}
-  meshSize: 16
+  meshGridCountInRow: 16
+  meshGridSize: 0.5
+  PatchCountPerTileInRow: 8
   outputDir: Assets/ATGrassCloud/Data/Terrain/Mesh
+  boundingBoxMesh: {fileID: 4300000, guid: d759a21d4f62eff4480d43ba2e503489, type: 2}
   traverseQuadTreeShader: {fileID: 7200000, guid: ce206a9496fd46b4ea6a569732249b06, type: 3}
   buildLodMapShader: {fileID: 7200000, guid: 0b006d07382f2984394926272c7673f0, type: 3}
   buildPatchesShader: {fileID: 7200000, guid: 32d85682161558343b88f88418f4adba, type: 3}
   minMaxHeightsShader: {fileID: 7200000, guid: 9082e00f1eee3c543a6aa78251e823cf, type: 3}
   material: {fileID: 2100000, guid: 035230246f6e8194dbe0b724ddaa5318, type: 2}
+  boundingBoxMaterial: {fileID: 2100000, guid: ba5bd732165889c48bb90a4845335fb8, type: 2}
   UpdateFromMaterial: 1
   debugInfoQuadTree: 0
   debugInfoDesctiption: 0
   debugInfoCulledBatch: 0
-  debugRenderPatch: 0
-  debugRenderTile: 1
+  debugRenderPatch: 1
+  debugRenderTile: 0
+  debugRenderBoundingBox: 1

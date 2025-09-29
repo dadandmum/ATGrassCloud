@@ -5,6 +5,7 @@
 // Texture2D<float4> HeightMapTexture;
 
 ConsumeStructuredBuffer<uint2> ConsumeTileList;
+RWStructuredBuffer<uint2> StructuredTileList;
 AppendStructuredBuffer<uint2> AppendTileList;
 AppendStructuredBuffer<uint3> AppendFinalTileList;
 RWStructuredBuffer<uint> TileDescriptors;
@@ -15,13 +16,22 @@ uniform float _TileEvaluationRange;
 
 // QuadTree Traversal
 bool EvaluateTile(uint2 tileLoc,uint lod){
+
     float3 positionWS = GetTilePositionWS(tileLoc,lod);
     float dis = distance(_TerrainCameraPositionWS,positionWS);
     float tileSize = GetTileSize(lod);
-    float f = dis / (tileSize * _TileEvaluationRange);
-    if( f < 1){
+    // float f = dis / (tileSize * _TileEvaluationRange);
+    // if( f < 1){
+    //     return true;
+    // }
+
+    float disF = tileSize * _TileEvaluationRange;
+
+    if ( dis < disF )
+    {
         return true;
     }
+
     return false;
 }
 
@@ -30,11 +40,13 @@ bool EvaluateTile(uint2 tileLoc,uint lod){
 void TraverseQuadTree (uint3 id : SV_DispatchThreadID)
 {
     uint2 tileLoc = ConsumeTileList.Consume();
+    // uint2 tileLoc = StructuredTileList[id.x];
+ 
     uint tileId = GetTileId(tileLoc,_PassLOD);
     uint desc = 0;// = TileDescriptors[tileId];
     if(_PassLOD > 0 && EvaluateTile(tileLoc,_PassLOD)){
         //divide
-        AppendTileList.Append(tileLoc * 2);
+        AppendTileList.Append(tileLoc * 2 + uint2(0,0));
         AppendTileList.Append(tileLoc * 2 + uint2(1,0));
         AppendTileList.Append(tileLoc * 2 + uint2(0,1));
         AppendTileList.Append(tileLoc * 2 + uint2(1,1));
@@ -44,5 +56,6 @@ void TraverseQuadTree (uint3 id : SV_DispatchThreadID)
         AppendFinalTileList.Append(uint3(tileLoc,_PassLOD));
         desc = 0;
     }
+
     TileDescriptors[tileId] = desc; 
 }

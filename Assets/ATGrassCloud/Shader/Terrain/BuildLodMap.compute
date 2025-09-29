@@ -15,6 +15,7 @@ void BuildLodMap(uint3 id : SV_DispatchThreadID){
     [unroll] 
     for(uint i = 0; i <= MAX_TERRAIN_LOD; i++) {
         uint lod = min( _TerrainLODLevel - 1 , MAX_TERRAIN_LOD - 1 - i);
+        lod = max(lod,0);
         uint sectorCount = GetSectorCountPerTilePerRow(lod);
         uint2 tileLoc = floor(sectorLoc / sectorCount);
         uint tileId = GetTileId(tileLoc,lod);

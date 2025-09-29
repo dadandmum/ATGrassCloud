@@ -50,6 +50,8 @@ int TileIDOffsetByLOD4;
 int TileIDOffsetByLOD5;
 int TileIDOffsetByLOD6;
 
+float MeshScaleByLOD[MAX_TERRAIN_LOD];
+
 
 uniform float3 _TerrainCameraPositionWS;
 uniform float3 _TerrainOffsetWS;
@@ -60,6 +62,12 @@ uniform int _TerrainLODLevel;
 
 texture2D<float4> _HeightMapTexture;
 texture2D<float4> _MinMaxHeightMapTexture;
+uniform uint _MinMaxHeightMapTexSize;
+
+float GetMeshScaleByLOD(uint lod){
+    lod = clamp(lod,0,MAX_TERRAIN_LOD_LEVEL-1);
+    return MeshScaleByLOD[lod];
+}
 
 float GetTileSize(uint lod){
     return WorldLodParams[lod].x;
@@ -99,20 +107,55 @@ uint GetTileId(uint2 tileLoc,uint lod){
     return GetTileId(uint3(tileLoc,lod));
 }
 
+float3 GetDebugColor( uint lod )
+{
+    float3 color = float3(0,0,0);
+    if (lod == 6 )
+        color = float3( 1.0f , 1.0f , 1.0f );
+    if (lod == 5 )
+        color = float3( 1.0f , 1.0f , 0 );
+    else if ( lod == 4 )
+        color = float3( 0.0f , 1.0f , 0 );
+    else if ( lod == 3 )
+        color = float3( 0.0f , 0.0f , 1.0f );
+    else if ( lod == 2 )
+        color = float3( 1.0f , 0.0f , 0.0f );       
+    else if ( lod == 1 )
+        color = float3( 1.0f , 0.25f , 0.1f );
+    else if ( lod == 0 )
+        color = float3( 0.05f , 0.25f , 0.05f );
+    return color;
+}
+
 float2 GetTilePositionWS2(uint2 tileLoc,uint mip){
     float tileMeterSize = GetTileSize(mip);
     float tileCount = GetTileCount(mip);
     float2 tilePositionWS = ((float2)tileLoc - (tileCount-1)*0.5) * tileMeterSize;
     return tilePositionWS;
 }
+float2 SampleMinMaxHeight(float2 positionWSXZ, uint lod)
+{
+    float2 uv = (positionWSXZ + _TerrainWorldSize.xz * 0.5) / _TerrainWorldSize.xz;
+
+    uint mipLevel = lod;
+    uint2 mipRes = max(1, _MinMaxHeightMapTexSize >> mipLevel);
+
+    uint2 tileLoc = (uint2)(uv * (float2)mipRes);
+    tileLoc = min(tileLoc, mipRes - 1);
+
+    float4 data = _MinMaxHeightMapTexture.Load(int3(tileLoc, mipLevel));
+
+    return data.rg;
+}
 
 float3 GetTilePositionWS(uint2 tileLoc,uint lod){
     float2 tilePositionWS = GetTilePositionWS2(tileLoc,lod);
     tilePositionWS += _TerrainOffsetWS.xz;
 
-    // float2 minMaxHeight = _MinMaxHeightMapTexture.mips[lod + 3][tileLoc].xy;
-    // float y = (minMaxHeight.x + minMaxHeight.y) * 0.5 * _WorldSize.y;
-    float y = 0;
+
+    float2 minMaxHeight = SampleMinMaxHeight(tilePositionWS,lod+3);
+    float y = (minMaxHeight.x + minMaxHeight.y) * 0.5 * _TerrainWorldSize.y;
+    // float y = 0;
     return float3(tilePositionWS.x,y,tilePositionWS.y);
 }
 

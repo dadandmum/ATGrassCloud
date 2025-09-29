@@ -11,11 +11,15 @@ Shader "ATGrassCloud/ATGPUTerrainDebug"
     }
     SubShader
     {
-        Tags { "RenderType"="Opaque" "LightMode" = "UniversalForward"}
-        LOD 100
-
+        Tags { "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline" "Queue"="Geometry"}
+         
         Pass
         {
+            Cull Back
+            ZTest Less
+            Tags { "LightMode" = "UniversalForward" }
+            ZWrite On
+
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
@@ -56,14 +60,14 @@ Shader "ATGrassCloud/ATGPUTerrainDebug"
             SAMPLER(sampler_SplatMap0);
             TEXTURE2D( _SplatMap1);
             SAMPLER(sampler_SplatMap1);
-            uniform float3 _WorldSize;
+            // uniform float3 _WorldSize;
             float4x4 _WorldToNormalMapMatrix;
 
             float3 ApplyTileDebug(RenderPatch patch,float3 vertex){
                 uint nodeCount = (uint)(5 * pow(2,5 - patch.lod));
-                float nodeSize = _WorldSize.x / nodeCount;
-                uint2 nodeLoc = floor((patch.position + _WorldSize.xz * 0.5) / nodeSize);
-                float2 nodeCenterPosition = - _WorldSize.xz * 0.5 + (nodeLoc + 0.5) * nodeSize ;
+                float nodeSize = _TerrainWorldSize.x / nodeCount;
+                uint2 nodeLoc = floor((patch.position + _TerrainWorldSize.xz * 0.5) / nodeSize);
+                float2 nodeCenterPosition = - _TerrainWorldSize.xz * 0.5 + (nodeLoc + 0.5) * nodeSize ;
                 vertex.xz = nodeCenterPosition + (vertex.xz - nodeCenterPosition) * 0.95;
                 return vertex;
             }
@@ -98,23 +102,29 @@ Shader "ATGrassCloud/ATGPUTerrainDebug"
                 RenderPatch patch = _PatchList[v.instanceID];
 
                 uint lod = patch.lod;
-                float scale = pow(2,lod);
-
+                float scale = GetMeshScaleByLOD(lod);
                 // uint4 lodTrans = patch.lodTrans;
 
-                positionOS.xz *= scale;
-                #if ENABLE_PATCH_DEBUG
-                positionOS.xz *= 0.9;
-                #endif
                 float3 positionWS = positionOS.xyz;
-                positionWS.xz += patch.position.xy;
+                positionWS.xz *= scale;
+                #if ENABLE_PATCH_DEBUG
+                positionWS.xz *= 0.9;
+                #endif
+                // positionWS.xz += patch.position.xy;
+                
+                float patchSize = GetTileSize(lod) / 8 ;
+                // float2 worldOffsetXZ = GetTilePositionWS2(patch.lodTrans.zw,lod) + (patch.lodTrans.xy - int2(7,7) * 0.5) * patchSize;
+                // float2 worldOffsetXZ = GetTilePositionWS2(patch.lodTrans.zw,lod);
+                float2 worldOffsetXZ = patch.position.xy;
+
+                positionWS.xz += worldOffsetXZ;
                 #if ENABLE_TILE_DEBUG
                 positionWS = ApplyTileDebug(patch,positionWS);
                 #endif
 
-                // float2 heightUV = (positionWS.xz + (_WorldSize.xz * 0.5) + 0.5) / (_WorldSize.xz + 1);
-                // float height = SAMPLE_TEXTURE2D_LOD(_HeightMap, sampler_HeightMap, heightUV, 0).r;
-                // positionWS.y = height * _WorldSize.y;
+                float2 heightUV = (positionWS.xz + (_TerrainWorldSize.xz * 0.5) + 0.5) / (_TerrainWorldSize.xz + 1);
+                float height = SAMPLE_TEXTURE2D_LOD(_HeightMap, sampler_HeightMap, heightUV, 0).r;
+                positionWS.y = height * _TerrainWorldSize.y;
 
                 // float3 normal = SampleNormal(heightUV);
                 // Light light = GetMainLight();
@@ -124,8 +134,10 @@ Shader "ATGrassCloud/ATGPUTerrainDebug"
                 o.vertex = vertex;
                 o.uv = uv * scale * 8;
 
+                o.color = GetDebugColor(lod);
+                
                 return o;
-            }
+            } 
 
             half4 frag (v2f i) : SV_Target
             {
@@ -135,7 +147,9 @@ Shader "ATGrassCloud/ATGPUTerrainDebug"
                 
                 half4 col = max( col0 , col1) ;
                 col.rgb *= i.color;
-                return half4(col.rgb,1.0);
+
+                return half4( i.color,1.0);
+                return half4( col.rgb,1.0);
             }
             ENDHLSL
         }

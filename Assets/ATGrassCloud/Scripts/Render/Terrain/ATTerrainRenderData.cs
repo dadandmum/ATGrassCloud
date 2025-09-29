@@ -49,10 +49,14 @@ namespace ATGrassCloud
         [OnValueChanged("UpdateTileInfo")]
         public Vector3 terrainPivotCenter = new Vector3(0.5f, 0.0f, 0.5f);
 
-        [Header("Tile Evaluation")]
+        [Header("Traverse Quad Tree")]
         [TabGroup("Basic Data")]
         [OnValueChanged("UpdateTileInfo")]
+        [Range(0.1f,5.0f)]
         public float tileEvaluationRange = 1.2f;
+        [InfoBox("If the tile is shining, try increase the tile buffer size. \nThe larger evaluation range may need the larger buffer size.")]
+        [TabGroup("Basic Data")]
+        public int tileBufferSize = 50;
 
         [TabGroup("Basic Data")]
         [ReadOnly]
@@ -75,6 +79,11 @@ namespace ATGrassCloud
         [Title("Rendering")]
         [TabGroup("Basic Data")]
         public bool lodSeamless = true;
+        [TabGroup("Basic Data")]
+        public bool snapCamera = true;
+        [TabGroup("Basic Data")]
+        [ShowIf("snapCamera")]
+        public bool onlyUpdateWhenCameraMove = true;
 
         public void UpdateTileInfo()
         {
@@ -115,7 +124,7 @@ namespace ATGrassCloud
         /// </summary>
         public float GetPatchExtent(int lodLevel , bool clampByLODLevel = false)
         {
-           return GetTileSize(lodLevel, clampByLODLevel) / meshSize;
+           return GetTileSize(lodLevel, clampByLODLevel) / meshGridCountInRow;
         }
 
         /// <summary>
@@ -236,7 +245,7 @@ namespace ATGrassCloud
                 return;
             }
 #if UNITY_EDITOR
-            ATTerrainUtils.GenerateMinMaxHeightMapFromSelectedHeightMap(heightMap, minMaxHeightsShader, textureSize, MAX_TERRAIN_LOD_LEVEL);
+            ATTerrainUtils.GenerateMinMaxHeightMapFromSelectedHeightMap(heightMap, minMaxHeightsShader, textureSize, MAX_TERRAIN_LOD_LEVEL + 3 );
 
             string hmFile = UnityEditor.AssetDatabase.GetAssetPath(heightMap);
             string dir = System.IO.Path.GetDirectoryName(hmFile);
@@ -275,28 +284,72 @@ namespace ATGrassCloud
         public Mesh patchMesh;
 
         [TabGroup("Mesh")]
-        public int meshSize = 16;
+        public int meshGridCountInRow = 16;
+        [TabGroup("Mesh")]
+        public float meshGridSize = 0.5f;
+
+        [TabGroup("Mesh")]
+        [Tooltip("Patch Count Per Tile In Row, which is set to 8 as a constant ")]
+        [ReadOnly]
+        public int PatchCountPerTileInRow = 8;
 
         [TabGroup("Mesh")]
         public string outputDir = "Assets/ATGrassCloud/Data/Terrain/Mesh";
+
+        
+        [TabGroup("Mesh")]
+        [PreviewField(128)]
+        public Mesh boundingBoxMesh;
 
         [TabGroup("Mesh")]
         [Button]
         public void GeneratePatchMesh()
         {
-
 #if UNITY_EDITOR
-            var mesh = ATTerrainUtils.CreatePlaneMesh(meshSize);
+            var mesh = ATTerrainUtils.CreatePlaneMesh(meshGridCountInRow,meshGridSize);
             
-            string exportPath = outputDir + "/PatchMesh_" + meshSize + ".mesh";
+            string exportPath = outputDir + "/PatchMesh_" + meshGridCountInRow + ".mesh";
             UnityEditor.AssetDatabase.CreateAsset(mesh,exportPath);
             UnityEditor.AssetDatabase.Refresh();
-            Debug.Log("Generate Patch Mesh " + meshSize + " to " + exportPath);
+            Debug.Log("Generate Patch Mesh " + meshGridCountInRow + " to " + exportPath);
 
             // load from asset database
             patchMesh = UnityEditor.AssetDatabase.LoadAssetAtPath<Mesh>(exportPath);
 #endif
 
+        }
+        
+        [TabGroup("Mesh")]
+        [Button]
+        public void GenerateBoundingBoxMesh()
+        {
+#if UNITY_EDITOR
+            var mesh = ATTerrainUtils.CreateCube(1,meshGridSize);
+            
+            string exportPath = outputDir + "/BoundingBoxMesh_" + meshGridCountInRow + ".mesh";
+            UnityEditor.AssetDatabase.CreateAsset(mesh,exportPath);
+            UnityEditor.AssetDatabase.Refresh();
+            Debug.Log("Generate Bounding Box Mesh " + meshGridCountInRow + " to " + exportPath);
+
+            // load from asset database
+            boundingBoxMesh = UnityEditor.AssetDatabase.LoadAssetAtPath<Mesh>(exportPath);
+#endif
+
+        }
+
+        public float[] GetMeshScaleByLOD()
+        {
+            var scales = new float[MAX_TERRAIN_LOD_LEVEL];
+            float meshSize = meshGridCountInRow * meshGridSize;
+            float LOD0TileSize = GetTileSize(0);
+            int patchCountPertile = PatchCountPerTileInRow;
+            float LOD0Scale = LOD0TileSize / ( meshSize * patchCountPertile );
+
+            for (int i = 0; i < MAX_TERRAIN_LOD_LEVEL; i++)
+            {
+                scales[i] = LOD0Scale * Mathf.Pow(2.0f , i);
+            }
+            return scales;
         }
 
 
@@ -314,6 +367,8 @@ namespace ATGrassCloud
 
         [TabGroup("Reference")]
         public Material material;
+        [TabGroup("Reference")]
+        public Material boundingBoxMaterial;
 
         [TabGroup("Reference")]
         public bool UpdateFromMaterial = false;
@@ -331,6 +386,9 @@ namespace ATGrassCloud
         public bool debugRenderPatch = false;
         [BoxGroup("Debug")]
         public bool debugRenderTile = false;
+        [BoxGroup("Debug")]
+        public bool debugRenderBoundingBox = false;
+
 
     }
 }

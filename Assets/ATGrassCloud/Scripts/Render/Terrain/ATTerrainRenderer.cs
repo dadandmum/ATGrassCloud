@@ -50,8 +50,8 @@ namespace ATGrassCloud
         /// Buffers are typically created with Append/Consume semantics and bound to
         /// compute shaders using AppendStructuredBuffer and ConsumeStructuredBuffer.
         /// </summary>
-        private ComputeBuffer tileListPing;
-        private ComputeBuffer tileListPong;
+        private GraphicsBuffer tileListPing;
+        private GraphicsBuffer tileListPong;
         /// <summary>
         /// A GPU buffer used to store the final list of active terrain tiles after quadtree traversal.
         /// 
@@ -71,6 +71,8 @@ namespace ATGrassCloud
         /// before being read back or passed to rendering commands.
         /// </summary>
         private ComputeBuffer finalTileListBuffer;
+        private ComputeBuffer _debug_finalTileCntBuffer;
+
         /// <summary>
         /// A GPU-accessible structured buffer that stores metadata for each tile in the terrain system.
         /// 
@@ -91,12 +93,29 @@ namespace ATGrassCloud
 
         // A buffer for debug
         // record the final count of tile
-        private ComputeBuffer traverseQuadTreeCntBuffer;
-        private ComputeBuffer finalTileCntBuffer;
-
+        private ComputeBuffer _debug_traverseQuadTreeCntBuffer;
+        /// <summary>
+        /// Buffer that stores terrain patch data that has passed culling (e.g., frustum culling).
+        /// Each patch contains rendering information such as position, LOD level, and bounds.
+        /// This buffer is typically used as an AppendBuffer, allowing patches to be dynamically added 
+        /// in the Compute Shader only if they are visible or relevant.
+        /// It will later be used as input for GPU indirect drawing (DrawProceduralIndirect) to render terrain efficiently.
+        /// </summary>        
         private ComputeBuffer culledPatchBuffer;
+
+        /// <summary>
+        /// Indirect arguments buffer used to pass parameters to Graphics.DrawProceduralIndirect.
+        /// The standard layout is:
+        ///   uint[0]: The number of patches to render (filled by ComputeBuffer.CopyCount())
+        ///   uint[1]: Instance count (usually 1)
+        ///   uint[2]: Starting vertex position (usually 0)
+        ///   uint[3]: Starting instance position (usually 0)
+        ///   uint[4]: address offset (usually 0)
+        /// After the Compute Shader runs, CopyCount is called to write the actual number of valid patches 
+        /// from culledPatchBuffer into this buffer, enabling dynamic, cull-driven rendering.
+        /// </summary>
         private ComputeBuffer patchIndirectArgsBuffer;
-        private ComputeBuffer culledPatchCntBuffer;
+        private ComputeBuffer _debug_culledPatchCntBuffer;
         private ComputeBuffer patchBoundsBuffer;
         private ComputeBuffer patchBoundsIndirectArgsBuffer;
         private ComputeBuffer buildPatchIndirectArgsBuffer;
@@ -109,21 +128,24 @@ namespace ATGrassCloud
         private bool IsRTInited = false;
 
         public int[] traverseQuadTreeCntData = new int[ATTerrainRenderData.MAX_TERRAIN_LOD_LEVEL];
-        public int[] finalTileCntData = new int[1];
+        public int[] _debug_finalTileCntData = new int[1];
         public int[] culledPatchCntData = new int[1];
-        public uint[] tileDescriptorsData;
+
+        public int[] _debug_finalTileListData = new int[1024 * 3];
+        public uint[] _debug_tileDescriptorsData;
 
         // material
         public Material renderMaterail;
+        public Material debugMaterial;
 
         // kernel id 
         public int traverseQuadTreeKernelID = 0;
         public int buildLodMapKernelID = 0;
         public int buildPatchesKernelID = 0;
 
-        private int _maxTileBufferSize = 200;
-        private int _tempNodeBufferSize = 50;
-
+        private int _finalTileBufferSize = 400;
+        private int _tempNodeBufferSize = 200;
+        private int _batchBufferSize = 400 * 64;
         private Plane[] cameraFrustumPlanes = new Plane[6];   
         private Vector4[] cameraFrustumPlanesV4 = new Vector4[6]; // (Normals.x , Normals.y , Normals.z , distance)
 
@@ -154,6 +176,10 @@ namespace ATGrassCloud
 
         public void InitComputeBuffer()
         {
+            _tempNodeBufferSize = data.tileBufferSize;
+            // guess the approximate max tile count in the final tile list
+            _finalTileBufferSize = 25 + data.tileBufferSize * ( data.LODLevel - 2);
+            _batchBufferSize = _finalTileBufferSize * data.PatchCountPerTileInRow * data.PatchCountPerTileInRow;
 
             // For QuadTree
             topLevelTileList?.Release();
@@ -161,45 +187,70 @@ namespace ATGrassCloud
             InitTopLevelNodeBuffer();
             
             tileListPing?.Release();
-            tileListPing = new ComputeBuffer(_tempNodeBufferSize,TileID_INT2_SIZE, ComputeBufferType.Append);
-            
+            // tileListPing = new ComputeBuffer(_tempNodeBufferSize,TileID_INT2_SIZE, ComputeBufferType.Append);
+            tileListPing = new GraphicsBuffer( GraphicsBuffer.Target.Append, _tempNodeBufferSize,TileID_INT2_SIZE );
             tileListPong?.Release();
-            tileListPong = new ComputeBuffer(_tempNodeBufferSize,TileID_INT2_SIZE, ComputeBufferType.Append);
+            // tileListPong = new ComputeBuffer(_tempNodeBufferSize,TileID_INT2_SIZE, ComputeBufferType.Append);
+            tileListPong = new GraphicsBuffer( GraphicsBuffer.Target.Append, _tempNodeBufferSize,TileID_INT2_SIZE);
 
             finalTileListBuffer?.Release();
-            finalTileListBuffer = new ComputeBuffer(_maxTileBufferSize, TileID_INT3_SIZE, ComputeBufferType.Append);
+            finalTileListBuffer = new ComputeBuffer(_finalTileBufferSize, TileID_INT3_SIZE, ComputeBufferType.Append);
             tileDescriptors?.Release();
             tileDescriptors = new ComputeBuffer( data.TotalTileCount, Descriptor_INT_SIZE);
             // set all tile descriptor to 0
             tileDescriptors.SetData(new uint[data.TotalTileCount]);
-            tileDescriptorsData = new uint[data.TotalTileCount];
+            _debug_tileDescriptorsData = new uint[data.TotalTileCount];
 
             travQTIndirectArgsBuffer?.Release();
             travQTIndirectArgsBuffer = new ComputeBuffer(3, sizeof(uint), ComputeBufferType.IndirectArguments);
             travQTIndirectArgsBuffer.SetData(new uint[]{1,1,1});
             // For debug
-            traverseQuadTreeCntBuffer?.Release();
-            traverseQuadTreeCntBuffer = new ComputeBuffer(ATTerrainRenderData.MAX_TERRAIN_LOD_LEVEL , sizeof(int), ComputeBufferType.Raw);
-            finalTileCntBuffer?.Release();
-            finalTileCntBuffer = new ComputeBuffer( 1 , sizeof(int), ComputeBufferType.Raw);
+            _debug_traverseQuadTreeCntBuffer?.Release();
+            _debug_traverseQuadTreeCntBuffer = new ComputeBuffer(ATTerrainRenderData.MAX_TERRAIN_LOD_LEVEL , sizeof(int), ComputeBufferType.Raw);
+            _debug_finalTileCntBuffer?.Release();
+            _debug_finalTileCntBuffer = new ComputeBuffer( 1 , sizeof(int), ComputeBufferType.Raw);
 
             // For Patches
             culledPatchBuffer?.Release();
-            culledPatchBuffer = new ComputeBuffer(_maxTileBufferSize * 64, PATCH_SIZE, ComputeBufferType.Append);
+            culledPatchBuffer = new ComputeBuffer(_batchBufferSize, PATCH_SIZE, ComputeBufferType.Append);
             patchIndirectArgsBuffer?.Release();
             patchIndirectArgsBuffer = new ComputeBuffer(5, sizeof(uint), ComputeBufferType.IndirectArguments);
-            patchIndirectArgsBuffer.SetData(new uint[]{1,1,1});
+            if (data.patchMesh != null)
+            {
+                int subMeshIndex = 0;
+                patchIndirectArgsBuffer.SetData(new uint[]{
+                (uint)data.patchMesh.GetIndexCount(subMeshIndex),
+                1, // This value is the instance count, we set it to 1 for now.
+                (uint)data.patchMesh.GetIndexStart(subMeshIndex),
+                (uint)data.patchMesh.GetBaseVertex(subMeshIndex),
+                0 // the offset in the vertex buffer
+                });
+            }else{
+                patchIndirectArgsBuffer.SetData(new uint[]{0,0,0,0,0});
+            }
             patchBoundsBuffer?.Release();
-            patchBoundsBuffer = new ComputeBuffer(_maxTileBufferSize, sizeof(float) * 6, ComputeBufferType.Append);
+            patchBoundsBuffer = new ComputeBuffer(_batchBufferSize, sizeof(float) * 6, ComputeBufferType.Append);
             patchBoundsIndirectArgsBuffer?.Release();
-            patchBoundsIndirectArgsBuffer = new ComputeBuffer(3, sizeof(uint), ComputeBufferType.IndirectArguments);
-            patchBoundsIndirectArgsBuffer.SetData(new uint[]{1,1,1});
+            patchBoundsIndirectArgsBuffer = new ComputeBuffer(5, sizeof(uint), ComputeBufferType.IndirectArguments);
+            if (data.boundingBoxMesh != null)
+            {
+                int subMeshIndex = 0;
+                patchBoundsIndirectArgsBuffer.SetData(new uint[]{
+                (uint)data.boundingBoxMesh.GetIndexCount(subMeshIndex),
+                1, // This value is the instance count, we set it to 1 for now.
+                (uint)data.boundingBoxMesh.GetIndexStart(subMeshIndex),
+                (uint)data.boundingBoxMesh.GetBaseVertex(subMeshIndex),
+                0 // the offset in the vertex buffer
+                });
+            }else{
+                patchBoundsIndirectArgsBuffer.SetData(new uint[]{0,0,0,0,0});
+            }
             buildPatchIndirectArgsBuffer?.Release();
             buildPatchIndirectArgsBuffer = new ComputeBuffer(3, sizeof(uint), ComputeBufferType.IndirectArguments);
             buildPatchIndirectArgsBuffer.SetData(new uint[]{1,1,1});
-            culledPatchCntBuffer?.Release();
-            culledPatchCntBuffer = new ComputeBuffer( 1 , sizeof(int), ComputeBufferType.Raw);
-            culledPatchCntBuffer.SetData(new int[]{0});
+            _debug_culledPatchCntBuffer?.Release();
+            _debug_culledPatchCntBuffer = new ComputeBuffer( 1 , sizeof(int), ComputeBufferType.Raw);
+            _debug_culledPatchCntBuffer.SetData(new int[]{0});
 
         }
 
@@ -237,7 +288,7 @@ namespace ATGrassCloud
             descMinMaxHeightMap.enableRandomWrite = true;
             descMinMaxHeightMap.useMipMap = true;
             descMinMaxHeightMap.autoGenerateMips = false;
-            descMinMaxHeightMap.mipCount = ATTerrainRenderData.MAX_TERRAIN_LOD_LEVEL;
+            descMinMaxHeightMap.mipCount = data.MinMaxHeightMap.Count - 1;
 
             RenderingUtils.ReAllocateIfNeeded(ref minMaxHeightMapRT, descMinMaxHeightMap, data.MinMaxHeightMap[0].filterMode );
         
@@ -250,8 +301,20 @@ namespace ATGrassCloud
 
         public void InitMaterial()
         {
-            renderMaterail = new Material(data.material);
-            renderMaterail.CopyMatchingPropertiesFromMaterial(data.material);
+            if (data.material != null)
+            {
+                renderMaterail = new Material(data.material);
+                renderMaterail.CopyMatchingPropertiesFromMaterial(data.material);
+            }else{
+                renderMaterail = null;
+            }
+            if (data.boundingBoxMaterial != null)
+            {
+                debugMaterial = new Material(data.boundingBoxMaterial);
+                debugMaterial.CopyMatchingPropertiesFromMaterial(data.boundingBoxMaterial);
+            }else{
+                debugMaterial = null;
+            }
 
         }
 
@@ -304,20 +367,14 @@ namespace ATGrassCloud
             cmd.SetBufferCounterValue(topLevelTileList, (uint)data.GetTopLevelTileCountTotal());
             cmd.SetBufferCounterValue(tileListPing, 0);
             cmd.SetBufferCounterValue(tileListPong, 0);
-            cmd.SetBufferCounterValue(finalTileListBuffer, 0);
+            cmd.SetBufferCounterValue(tileListPong, 0);
             cmd.SetBufferCounterValue(culledPatchBuffer, 0);
+            cmd.SetBufferCounterValue(finalTileListBuffer, 0);
+            cmd.SetBufferCounterValue(patchBoundsBuffer, 0);
         }
         private void SetupComputeBuffer( CommandBuffer cmd)
         {
-            // set all tile descriptor to 1
-            // uint[] tileDescriptorsData = new uint[data.TotalTileCount];
-            // for (int i = 0; i < data.TotalTileCount; i++)
-            // {
-            //     tileDescriptorsData[i] = (uint)UnityEngine.Random.Range(0,8);
-            // }
-            // tileDescriptors.SetData(tileDescriptorsData);
-
-
+            // InitTopLevelNodeBuffer();
             CleanBufferCounter(cmd);
         }
 
@@ -343,7 +400,7 @@ namespace ATGrassCloud
             // float[] tileIDOffsets = data.GetTileIDOffsetArrayFloat();
             // cmd.SetComputeFloatParams(shader, TILE_ID_OFFSETS_BY_LOD_ID,tileIDOffsets);
             int[] tileIDOffsets = data.GetTileIDOffsetArrayInt();
-            // cmd.SetComputeIntParams(shader, TILE_ID_OFFSETS_BY_LOD_ID,tileIDOffsets);
+            
             cmd.SetComputeIntParam(shader,TILE_ID_OFFSET_BY_LOD_ID_0,tileIDOffsets[0]);
             cmd.SetComputeIntParam(shader,TILE_ID_OFFSET_BY_LOD_ID_1,tileIDOffsets[1]);
             cmd.SetComputeIntParam(shader,TILE_ID_OFFSET_BY_LOD_ID_2,tileIDOffsets[2]);
@@ -361,6 +418,7 @@ namespace ATGrassCloud
             cmd.SetComputeVectorParam(shader,TERRAIN_WORLD_SIZE_ID, data.WorldSize);
             cmd.SetComputeVectorParam(shader,TERRAIN_OFFSET_WS_ID, data.GetWorldOffset());
             cmd.SetComputeIntParam(shader,TERRAIN_LOD_LEVEL_ID, data.LODLevel);
+            cmd.SetComputeIntParam(shader,MIN_MAX_HEIGHT_MAP_TEX_SIZE_ID, data.textureSize);
         }
  
 
@@ -400,12 +458,19 @@ namespace ATGrassCloud
             }else{
                 cmd.DisableKeyword(buildPatchesShader, new LocalKeyword(buildPatchesShader,"ENABLE_FRUS_CULL"));
             }
-            // if ( data.UseHiZOcclusionCull)
-            // {
-            //     cmd.EnableKeyword(buildPatchesShader, new LocalKeyword(buildPatchesShader,"ENABLE_HIZ_CULL"));
-            // }else{
-            //     cmd.DisableKeyword(buildPatchesShader, new LocalKeyword(buildPatchesShader,"ENABLE_HIZ_CULL"));
-            // }
+            if ( data.UseHiZOcclusionCull)
+            {
+                cmd.EnableKeyword(buildPatchesShader, new LocalKeyword(buildPatchesShader,"ENABLE_HIZ_CULL"));
+            }else{
+                cmd.DisableKeyword(buildPatchesShader, new LocalKeyword(buildPatchesShader,"ENABLE_HIZ_CULL"));
+            }
+
+            if ( data.debugRenderBoundingBox)
+            {
+                cmd.EnableKeyword(buildPatchesShader, new LocalKeyword(buildPatchesShader,"BOUNDS_DEBUG"));
+            }else{
+                cmd.DisableKeyword(buildPatchesShader, new LocalKeyword(buildPatchesShader,"BOUNDS_DEBUG"));
+            }
             cmd.SetComputeIntParam(buildPatchesShader,SECTOR_COUNT_WORLD_ID, data.GetTileCountInRow(0,false));
 
             cmd.SetComputeFloatParam(buildPatchesShader,BOUNDS_HEIGHT_REDUNDANCE_ID, data.boundsHeightRedundance);
@@ -413,15 +478,19 @@ namespace ATGrassCloud
 
             cmd.SetComputeTextureParam(buildPatchesShader, buildPatchesKernelID, LOD_MAP_TEXTURE_ID,lodMapRT);
             cmd.SetComputeTextureParam(buildPatchesShader, buildPatchesKernelID, HEIGHT_MAP_TEXTURE_ID, heightMapRT);
-            cmd.SetComputeTextureParam(traverseQuadTreeShader,traverseQuadTreeKernelID,MIN_MAX_HEIGHT_MAP_TEXTURE_ID, minMaxHeightMapRT);
             cmd.SetComputeTextureParam(buildPatchesShader, buildPatchesKernelID, MIN_MAX_HEIGHT_MAP_TEXTURE_ID, minMaxHeightMapRT);
-            cmd.SetComputeBufferParam(buildPatchesShader, buildPatchesKernelID, CULL_PATCH_LIST_ID, culledPatchBuffer);
-            cmd.SetComputeBufferParam(buildPatchesShader, buildPatchesKernelID, PATCH_BOUNDS_LIST_ID, patchBoundsBuffer);
+            cmd.SetComputeTextureParam(buildPatchesShader, buildPatchesKernelID, MIN_MAX_HEIGHT_MAP_TEXTURE_ID, minMaxHeightMapRT);
+            cmd.SetComputeBufferParam(buildPatchesShader, buildPatchesKernelID, CULLED_PATCH_LIST_ID, culledPatchBuffer);
             
+            if ( data.debugRenderBoundingBox)
+            {
+                cmd.SetComputeBufferParam(buildPatchesShader, buildPatchesKernelID, PATCH_BOUNDS_LIST_ID, patchBoundsBuffer);
+            }
+
             SetupTerrainBasicData(buildPatchesShader, cmd);
         }
 
-        public void SetupMaterial( Material material )
+        public void SetupMaterial( Material material , CommandBuffer cmd )
         {
             if ( material == null )
                 return;
@@ -429,15 +498,17 @@ namespace ATGrassCloud
             if ( data.UpdateFromMaterial )
             {
                 material.CopyMatchingPropertiesFromMaterial(data.material);
+                
             }
 
             material.SetTexture(RENDER_HEIGHT_MAP_ID, data.heightMap);
             material.SetTexture(RENDER_NORMAL_MAP_ID, data.normalMap);
             material.SetTexture(RENDER_SPLAT_MAP0_ID, data.SplatMap0);
             material.SetTexture(RENDER_SPLAT_MAP1_ID, data.SplatMap1);
-            material.SetInt(PATCH_MESH_GRID_SIZE_ID, data.meshSize);
+            material.SetInt(PATCH_MESH_GRID_SIZE_ID, data.meshGridCountInRow);
 
             material.SetBuffer(PATCH_LIST_ID, culledPatchBuffer);
+            // cmd.SetGlobalBuffer(PATCH_LIST_ID, culledPatchBuffer);
 
             if ( data.lodSeamless )
             {
@@ -453,13 +524,35 @@ namespace ATGrassCloud
                 material.DisableKeyword("ENABLE_PATCH_DEBUG");
             }
 
-            material.SetVector(RENDER_WORLD_SIZE_ID, data.WorldSize);
+            material.SetVector(TERRAIN_WORLD_SIZE_ID, data.WorldSize);
             material.SetMatrix(RENDER_WORLD_TO_NORMAL_MAP_MATRIX_ID,Matrix4x4.Scale(data.WorldSize).inverse);
+            material.SetFloatArray(MESH_SCALE_BY_LOD_ID, data.GetMeshScaleByLOD());
+            
+            material.SetVectorArray(WORLD_LOD_PARAMS_ID, data.GetWorldLodParam());
+
+            if ( data.debugRenderBoundingBox)
+            {
+                material.SetBuffer(BOUNDS_LIST_ID, patchBoundsBuffer);
+            }else{
+            }
 
         }
 
         #endregion 
 
+
+        #region  Camera
+
+        public Vector3 GetSnappedCameraPosition ( Camera cam , float snapDistance )
+        {
+            Vector3 position = cam.transform.position;
+            position.x = Mathf.Round(position.x / snapDistance) * snapDistance;
+            position.z = Mathf.Round(position.z / snapDistance) * snapDistance;
+            return position;
+        }
+
+
+        #endregion
         public void PreRender( ScriptableRenderContext context, ref RenderingData renderingData , CommandBuffer cmd)
         {
             if ( traverseQuadTreeShader == null )
@@ -470,65 +563,90 @@ namespace ATGrassCloud
             if ( cam == null )
                 return;
 
-            if ( data.debugInfoCulledBatch || data.debugInfoCulledBatch || data.debugInfoDesctiption)
+            if ( data.debugInfoQuadTree || data.debugInfoCulledBatch || data.debugInfoDesctiption)
                 Debug.Log(">>> Temp Camera " + renderingData.cameraData.camera.name);
+
+
+            if ( data.snapCamera )
+            {
+                var newCamPos = GetSnappedCameraPosition(cam, data.GetTileSize(0)  );
+
+                if (data.onlyUpdateWhenCameraMove && newCamPos.Equals(cameraPositionWS))
+                {
+                    if (data.debugInfoQuadTree || data.debugInfoCulledBatch || data.debugInfoDesctiption)
+                        Debug.Log(">> Skip Rebuild Quad Tree");
+                    return;
+                }
+
+                cameraPositionWS = newCamPos;
+            }
+            else
+            {
+                 cameraPositionWS = cam.transform.position;
+            }
+
 
             SetupComputeBuffer(cmd);
             UpdateCameraFrustumPlanes(cam);
-            cameraPositionWS = cam.transform.position;
             
             context.ExecuteCommandBuffer(cmd);
             cmd.Clear();
+
 
             using (new ProfilingScope(cmd, new ProfilingSampler("[AT] Traverse Quad Tree")))
             {
                 cmd.CopyCounterValue(topLevelTileList, travQTIndirectArgsBuffer,0);
 
-                ComputeBuffer consumeNodeList = tileListPing;
-                ComputeBuffer appendNodeList = tileListPong;
+                GraphicsBuffer consumeNodeList = tileListPing;
+                GraphicsBuffer appendNodeList = tileListPong;
                 SetupTraverseQuadTree(cmd);
                 
-                for (int lod = data.LODLevel; lod >= 0; lod -- )
+                for (int lod = data.LODLevel - 1 ; lod >= 0; lod -- )
                 {
-                    // cmd.SetComputeFloatParam( traverseQuadTreeShader, PASS_LOD_ID, lod);
                     cmd.SetComputeIntParam( traverseQuadTreeShader, PASS_LOD_ID, lod);
-                    if ( lod == data.LODLevel )
+
+                    if ( lod == data.LODLevel - 1 )
                     {
                         cmd.SetComputeBufferParam(traverseQuadTreeShader,traverseQuadTreeKernelID,CONSUME_TILE_LIST_ID,topLevelTileList);
-                    }else{
+                    } else {
                         cmd.SetComputeBufferParam(traverseQuadTreeShader,traverseQuadTreeKernelID,CONSUME_TILE_LIST_ID,consumeNodeList);
                     }
                     cmd.SetComputeBufferParam(traverseQuadTreeShader,traverseQuadTreeKernelID,APPEND_TILE_LIST_ID,appendNodeList);
 
+                    cmd.SetBufferCounterValue(appendNodeList, 0);
+
                     cmd.DispatchCompute(traverseQuadTreeShader,traverseQuadTreeKernelID,travQTIndirectArgsBuffer,0);
 
-                    context.ExecuteCommandBuffer(cmd);
-                    cmd.Clear();
-
                     cmd.CopyCounterValue(appendNodeList, travQTIndirectArgsBuffer, 0);
-                    cmd.CopyCounterValue(appendNodeList, traverseQuadTreeCntBuffer, (uint)lod * sizeof(uint));
+                    cmd.CopyCounterValue(appendNodeList, _debug_traverseQuadTreeCntBuffer, (uint)lod * sizeof(uint));
 
+                    // context.ExecuteCommandBuffer(cmd);
+                    // cmd.Clear();
+                    
                     // ping pong the node list 
                     var temp = consumeNodeList;
                     consumeNodeList = appendNodeList;
                     appendNodeList = temp;
                 }
+            
 
-                cmd.CopyCounterValue(finalTileListBuffer, finalTileCntBuffer, 0);
+                cmd.CopyCounterValue(finalTileListBuffer, _debug_finalTileCntBuffer, 0);
+                context.ExecuteCommandBuffer(cmd);
+                cmd.Clear();
 
                 if (data.debugInfoQuadTree)
                 {
-                    finalTileCntBuffer.GetData(finalTileCntData);
-                    Debug.Log("Final Tile Count From GPU:" + finalTileCntData[0]);
+                    _debug_finalTileCntBuffer.GetData(_debug_finalTileCntData);
+                    Debug.Log("Final Tile Count From GPU:" + _debug_finalTileCntData[0]);
                     // For debug 
-                    traverseQuadTreeCntBuffer.GetData(traverseQuadTreeCntData);
+                    _debug_traverseQuadTreeCntBuffer.GetData(traverseQuadTreeCntData);
                     int acc = 0;
                     int pre = data.TopLevelTileCount * data.TopLevelTileCount;
-                    for (int lod = data.LODLevel; lod >= 0; lod--)
+                    for (int lod = data.LODLevel - 1 ; lod >= 0; lod--)
                     {
                         if (lod == 0)
                         {
-                            Debug.Log("LOD " + lod + " Rest Tile Count From GPU:" + (finalTileCntData[0] - acc) + " Saved to Final : " + (finalTileCntData[0]));
+                            Debug.Log("LOD " + lod + " Rest Tile Count From GPU:" + (_debug_finalTileCntData[0] - acc) + " Saved to Final : " + (_debug_finalTileCntData[0]));
                         }
                         else
                         {
@@ -538,11 +656,19 @@ namespace ATGrassCloud
                             Debug.Log("LOD " + lod + " Expended Tile Count From GPU:" + traverseQuadTreeCntData[lod] + " Saved To Final : " + acc);
                         }
                     }
+
+                    finalTileListBuffer.GetData(_debug_finalTileListData,0,0,_debug_finalTileCntData[0] * 3 );
+                    string finalTileLog = "";
+                    for (int i = 0; i < _debug_finalTileCntData[0]; i++)
+                    {
+                        finalTileLog += "id" + i + ":" + _debug_finalTileListData[3 * i] + " " + _debug_finalTileListData[3 * i + 1] + " " + _debug_finalTileListData[3 * i + 2] + "|" ;
+                    }
+                    Debug.Log("Final Tile List From GPU:" + finalTileLog);
                 }
 
                 if ( data.debugInfoDesctiption)
                 {
-                    tileDescriptors.GetData(tileDescriptorsData);
+                    tileDescriptors.GetData(_debug_tileDescriptorsData);
                     // show first 100 tile descriptors in 10 x 10 ints 
                     string debugInfo="";
                     for (int i = 0; i < 10; i++)
@@ -550,7 +676,7 @@ namespace ATGrassCloud
                         debugInfo += " [" + i + "] : ";
                         for (int j = 0; j < 10; j++)
                         {
-                            debugInfo += " " + tileDescriptorsData[i * 10 + j];
+                            debugInfo += " " + _debug_tileDescriptorsData[i * 10 + j];
                         }
                         debugInfo += "\n";
                     }
@@ -583,12 +709,12 @@ namespace ATGrassCloud
 
                 cmd.CopyCounterValue(finalTileListBuffer, buildPatchIndirectArgsBuffer, 0);
                 cmd.DispatchCompute(buildPatchesShader, buildPatchesKernelID, buildPatchIndirectArgsBuffer, 0);
-                cmd.CopyCounterValue(culledPatchBuffer, patchIndirectArgsBuffer, 4);
-                cmd.CopyCounterValue(culledPatchBuffer, culledPatchCntBuffer, 0);
+                
+                cmd.CopyCounterValue(culledPatchBuffer, _debug_culledPatchCntBuffer, 0);
 
                 if (data.debugInfoCulledBatch)
                 {
-                    culledPatchCntBuffer.GetData(culledPatchCntData);
+                    _debug_culledPatchCntBuffer.GetData(culledPatchCntData);
                     Debug.Log("Culled Patch Count From GPU:" + culledPatchCntData[0]);
                 }
 
@@ -603,12 +729,11 @@ namespace ATGrassCloud
             if ( renderMaterail == null || data.patchMesh == null || patchIndirectArgsBuffer == null )
                 return;
 
-
-
-            using (new ProfilingScope(cmd, new ProfilingSampler("[AT] Terrain Render")))
+            using (new ProfilingScope(cmd, new ProfilingSampler("[AT] Terrain Rendering")))
             {
-                SetupMaterial(renderMaterail);
+                SetupMaterial(renderMaterail, cmd);
 
+                cmd.CopyCounterValue(culledPatchBuffer, patchIndirectArgsBuffer, 1 * sizeof(uint));
                 cmd.DrawMeshInstancedIndirect(
                     data.patchMesh,
                     0,
@@ -616,7 +741,33 @@ namespace ATGrassCloud
                     0,
                     patchIndirectArgsBuffer,
                     0);
+                    
+                context.ExecuteCommandBuffer(cmd);
+                cmd.Clear();
+
             }
+
+            if ( data.debugRenderBoundingBox && debugMaterial != null)
+            {
+
+                using (new ProfilingScope(cmd, new ProfilingSampler("[AT] Debug Render Bounding Box")))
+                {
+                    SetupMaterial(debugMaterial, cmd);
+
+                    cmd.CopyCounterValue(patchBoundsBuffer, patchBoundsIndirectArgsBuffer, 1 * sizeof(uint));
+                    cmd.DrawMeshInstancedIndirect(
+                        data.boundingBoxMesh,
+                        0,
+                        debugMaterial,
+                        0,
+                        patchBoundsIndirectArgsBuffer,
+                        0);
+
+                    context.ExecuteCommandBuffer(cmd);
+                    cmd.Clear();
+                }
+            }
+            
         }
 
 
@@ -627,13 +778,14 @@ namespace ATGrassCloud
             topLevelTileList?.Release();
             tileListPing?.Release();
             tileListPong?.Release();
+
             finalTileListBuffer?.Release();
             travQTIndirectArgsBuffer?.Release();
-            traverseQuadTreeCntBuffer?.Release();
-            finalTileCntBuffer?.Release();
+            _debug_traverseQuadTreeCntBuffer?.Release();
+            _debug_finalTileCntBuffer?.Release();
 
             culledPatchBuffer?.Release();
-            culledPatchCntBuffer?.Release();
+            _debug_culledPatchCntBuffer?.Release();
             patchIndirectArgsBuffer?.Release();
             patchBoundsBuffer?.Release();
             patchBoundsIndirectArgsBuffer?.Release();
@@ -651,10 +803,11 @@ namespace ATGrassCloud
         public static readonly int APPEND_FINAL_TILE_LIST_ID = Shader.PropertyToID("AppendFinalTileList");
         public static readonly int FINAL_TILE_LIST_ID = Shader.PropertyToID("FinalTileList");
         public static readonly int CONSUME_TILE_LIST_ID = Shader.PropertyToID("ConsumeTileList");
+        public static readonly int STRUCTURE_TILE_LIST_ID = Shader.PropertyToID("StructureTileList");
         public static readonly int APPEND_TILE_LIST_ID = Shader.PropertyToID("AppendTileList");
         public static readonly int TILE_DESCRIPTORS_ID = Shader.PropertyToID("TileDescriptors");
 
-        public static readonly int CULL_PATCH_LIST_ID = Shader.PropertyToID("CulledPatchList");
+        public static readonly int CULLED_PATCH_LIST_ID = Shader.PropertyToID("CulledPatchList");
         public static readonly int PATCH_COMSUME_LIST_ID = Shader.PropertyToID("PatchConsumeList");
         public static readonly int PATCH_BOUNDS_LIST_ID = Shader.PropertyToID("PatchBoundsList");
         public static readonly int TILE_ID_OFFSET_BY_LOD_ID_0 = Shader.PropertyToID("TileIDOffsetByLOD0");
@@ -678,6 +831,7 @@ namespace ATGrassCloud
         public static readonly int WORLD_LOD_PARAMS_ID = Shader.PropertyToID("WorldLodParams");
         public static readonly int TILE_ID_OFFSETS_BY_LOD_ID = Shader.PropertyToID("TileIDOffsetByLOD");
         public static readonly int TERRAIN_LOD_LEVEL_ID = Shader.PropertyToID("_TerrainLODLevel");
+        public static readonly int MIN_MAX_HEIGHT_MAP_TEX_SIZE_ID = Shader.PropertyToID("_MinMaxHeightMapTexSize");
 
         // For Traverse Quad Tree
         public static readonly int PASS_LOD_ID = Shader.PropertyToID("_PassLOD");
@@ -700,6 +854,8 @@ namespace ATGrassCloud
         public static readonly int RENDER_WORLD_SIZE_ID = Shader.PropertyToID("_WorldSize");
         public static readonly int RENDER_WORLD_TO_NORMAL_MAP_MATRIX_ID = Shader.PropertyToID("_WorldToNormalMapMatrix");
         public static readonly int PATCH_LIST_ID = Shader.PropertyToID("_PatchList");
-        public static readonly int PATCH_MESH_GRID_SIZE_ID = Shader.PropertyToID("_PatchMeshGridSize"); 
+        public static readonly int BOUNDS_LIST_ID = Shader.PropertyToID("_BoundsList");
+        public static readonly int PATCH_MESH_GRID_SIZE_ID = Shader.PropertyToID("_PatchMeshGridSize");
+        public static readonly int MESH_SCALE_BY_LOD_ID = Shader.PropertyToID("MeshScaleByLOD");
     }
 }
