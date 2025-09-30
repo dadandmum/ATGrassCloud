@@ -152,7 +152,6 @@ float3 GetTilePositionWS(uint2 tileLoc,uint lod){
     float2 tilePositionWS = GetTilePositionWS2(tileLoc,lod);
     tilePositionWS += _TerrainOffsetWS.xz;
 
-
     float2 minMaxHeight = SampleMinMaxHeight(tilePositionWS,lod+3);
     float y = (minMaxHeight.x + minMaxHeight.y) * 0.5 * _TerrainWorldSize.y;
     // float y = 0;

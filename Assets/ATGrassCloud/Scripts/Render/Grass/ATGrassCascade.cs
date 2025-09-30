@@ -174,15 +174,15 @@ namespace ATGrassCloud
                 return;
             }
 
-            using (new ProfilingScope(cmd, new ProfilingSampler("[AT]HeightMap Cascade " + data.cascadeName)))
+            Camera camera = Camera.main;
+            if (camera == null)
             {
+                camera = renderingData.cameraData.camera;
 
-                Camera camera = Camera.main;
-                if ( camera == null )
-                {
-                    camera = renderingData.cameraData.camera;
+            }
 
-                }
+            using (new ProfilingScope(cmd, new ProfilingSampler("[AT]HeightMap Set Target " + data.cascadeName)))
+            {
 
                 Matrix4x4 viewMatrix, projMatrix;
                 GrassUtils.CalculateTopDownCameraData(
@@ -195,20 +195,22 @@ namespace ATGrassCloud
 
                 cmd.SetRenderTarget(heightRT, heightDepthRT);
                 cmd.ClearRenderTarget(true, true, new Color(0, 0, 0, 0));
+            }
 
-                context.ExecuteCommandBuffer(cmd);
+            context.ExecuteCommandBuffer(cmd);
                 cmd.Clear();
 
+            using (new ProfilingScope(cmd, new ProfilingSampler("[AT]HeightMap Cascade " + data.cascadeName)))
+            {
+           
                 var cameraBounds = GrassUtils.CalculateCameraBounds(camera, data.GetMaxDistance());
                 //Replace the material of the objects with the "heightMapLayer" and render them
                 var drawSetting = pass.CreateDrawingSettings(heightMapTagList, ref renderingData, SortingCriteria.QuantizedFrontToBack);
 
-            
                 heightMapMat.SetVector("_BoundsYMinMax", new Vector2(cameraBounds.min.y, cameraBounds.max.y));
                 drawSetting.overrideMaterial = heightMapMat;
                 var filterSetting = new FilteringSettings(RenderQueueRange.all, data.heightMapLayer);
                 context.DrawRenderers(renderingData.cullResults, ref drawSetting, ref filterSetting);
-
             }
 
             if ( resetRenderTarget)
@@ -297,11 +299,9 @@ namespace ATGrassCloud
                 // Debug.Log("GrassData Count From CPU:" + grassCntData[0]);
                 // Debug.Log("GrassCnt Count From GPU:" + grassCntData[1]);
 
-            
-                context.ExecuteCommandBuffer(cmd);
-                cmd.Clear();
-
             }
+            context.ExecuteCommandBuffer(cmd);
+            cmd.Clear();
 
         }
 
@@ -364,9 +364,6 @@ namespace ATGrassCloud
                 0
 
             );
-
-            context.ExecuteCommandBuffer(cmd);
-            cmd.Clear();
         }
 
 
@@ -413,9 +410,6 @@ namespace ATGrassCloud
                 0
 
             );
-
-            context.ExecuteCommandBuffer(cmd);
-            cmd.Clear();
         }
 
     public Mesh GetGrassMesh()

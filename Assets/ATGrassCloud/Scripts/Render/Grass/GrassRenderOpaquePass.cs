@@ -49,9 +49,10 @@ namespace ATGrassCloud
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
-            CommandBuffer cmd = CommandBufferPool.Get();
 
-            using (new ProfilingScope(cmd, new ProfilingSampler("[AT] Grass Render")))
+            CommandBuffer cmd = CommandBufferPool.Get("[AT] Grass Render Opaque Pass");
+
+            // using (new ProfilingScope(cmd, new ProfilingSampler("[AT] Grass Render")))
             {
                 for (int i = 0; i < grassRenderPass.CascadesList.Count; i++)
                 {

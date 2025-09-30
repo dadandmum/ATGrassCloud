@@ -87,9 +87,9 @@ Shader "ATGrassCloud/ATGPUTerrainDebug"
 
                 float3 normal;
                 normal.xz = SAMPLE_TEXTURE2D_LOD(_NormalMap, sampler_NormalMap, uv, 0).xy * 2 - 1;
-                normal.y = sqrt(max(0,1 - dot(normal.xz,normal.xz)));
-                normal = TransformNormalToWorldSpace(normal) * _NormalIntensity;
-                return normal;
+                normal.y = sqrt(max(0,1 - dot(normal.xz,normal.xz) * _NormalIntensity));
+                normal = TransformNormalToWorldSpace(normal);
+                return normalize( normal);
             }
 
             v2f vert (appdata v)
@@ -126,15 +126,16 @@ Shader "ATGrassCloud/ATGPUTerrainDebug"
                 float height = SAMPLE_TEXTURE2D_LOD(_HeightMap, sampler_HeightMap, heightUV, 0).r;
                 positionWS.y = height * _TerrainWorldSize.y;
 
-                // float3 normal = SampleNormal(heightUV);
-                // Light light = GetMainLight();
-                // o.color = max(0.05,dot(light.direction,normal));
+                float3 normal = SampleNormal(heightUV);
+                Light light = GetMainLight();
+                o.color = max(0.05,dot(light.direction,normal));
 
                 float4 vertex = TransformObjectToHClip(positionWS.xyz);
                 o.vertex = vertex;
-                o.uv = uv * scale * 8;
+                // o.uv = uv * scale * 8;
+                o.uv = heightUV;
 
-                o.color = GetDebugColor(lod);
+                // o.color = GetDebugColor(lod);
                 
                 return o;
             } 
@@ -146,9 +147,11 @@ Shader "ATGrassCloud/ATGPUTerrainDebug"
                 half4 col1 = SAMPLE_TEXTURE2D_LOD(_SplatMap1, sampler_SplatMap1, i.uv, 0);
                 
                 half4 col = max( col0 , col1) ;
+
+                // col = half4( saturate(1.0 - col0.a - 0.99) * 10.0 ,0,0,1);
+                col = half4( col0.r ,0,0,1);
                 col.rgb *= i.color;
 
-                return half4( i.color,1.0);
                 return half4( col.rgb,1.0);
             }
             ENDHLSL

@@ -22,7 +22,7 @@ MonoBehaviour:
   cascadeOutterFade: 15
   cascadeTexSize: 3
   maxInstanceCount: 1
-  instancePerTile: 4
+  instancePerTile: 1
   TileSize: 0.25
   heightMapLayer:
     serializedVersion: 2
@@ -38,4 +38,8 @@ MonoBehaviour:
   renderType: 0
   ProcedualMeshMaterial: {fileID: 2100000, guid: 3b14d1de8eb6c7c4cbee36508473c8c1, type: 2}
   procedualMeshSegments: 6
+  MeshMaterial: {fileID: 0}
+  Mesh: {fileID: 0}
   updateMaterial: 1
+  debugCascade: 0
+  debugColor: {r: 1, g: 0, b: 0, a: 1}

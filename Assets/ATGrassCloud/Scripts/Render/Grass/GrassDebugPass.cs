@@ -38,9 +38,9 @@ namespace ATGrassCloud
             {
                 return;
             }
-            CommandBuffer cmd = CommandBufferPool.Get();
+            CommandBuffer cmd = CommandBufferPool.Get("[AT] Grass Debug Pass");
 
-            using (new ProfilingScope(cmd, new ProfilingSampler("Grass Debug")))
+            // using (new ProfilingScope(cmd, new ProfilingSampler("Grass Debug")))
             {
                 
                 var cascade = grassPass.GetCascade(debugData.debugCascade);
@@ -49,9 +49,6 @@ namespace ATGrassCloud
                 {
                     cmd.Blit(cascade.GetHeightRT(), renderingData.cameraData.renderer.cameraColorTargetHandle);
                 }
-                
-                
-
             }
             context.ExecuteCommandBuffer(cmd);
             cmd.Clear();

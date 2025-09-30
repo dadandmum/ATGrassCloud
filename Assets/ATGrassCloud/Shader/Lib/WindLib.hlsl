@@ -1,8 +1,11 @@
 #ifndef __WIND_LIB_HLSL__
 #define __WIND_LIB_HLSL__
 
-TEXTURE2D(_WindResultTex);
-SAMPLER(sampler_WindResultTex);
+// TEXTURE2D(_WindResultTex);
+// SAMPLER(sampler_WindResultTex);
+
+texture2D<float4> _WindResultTex;
+sampler sampler_WindResultTex;
 // === 2D Simplex Noise in HLSL ===
 float wmod289(float x) { return x - floor(x / 289.0) * 289.0; }
 float2 wmod289(float2 x) { return x - floor(x / 289.0) * 289.0; }
@@ -206,8 +209,8 @@ float2 wind_PosXZ2UV( float2 posXZ , float4 windPositionParams )
 half2 GetWind( float2 worldPosXZ , float4 windPositionParams )
 {
     float2 uv = wind_PosXZ2UV(worldPosXZ, windPositionParams);
-    float2 windEncode = SAMPLE_TEXTURE2D_LOD(_WindResultTex, sampler_WindResultTex, uv, 0);    
-
+    // float2 windEncode = SAMPLE_TEXTURE2D_LOD(_WindResultTex, sampler_WindResultTex, uv, 0).rg;    
+    float2 windEncode = _WindResultTex.SampleLevel(sampler_WindResultTex, uv, 0).rg;
     return WindDecode(windEncode);
 }
 

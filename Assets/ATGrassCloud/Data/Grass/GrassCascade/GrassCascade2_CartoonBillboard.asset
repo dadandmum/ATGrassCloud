@@ -22,8 +22,8 @@ MonoBehaviour:
   cascadeOutterFade: 50
   cascadeTexSize: 1
   maxInstanceCount: 1
-  instancePerTile: 1
-  TileSize: 0.25
+  instancePerTile: 3
+  TileSize: 1
   heightMapLayer:
     serializedVersion: 2
     m_Bits: 768

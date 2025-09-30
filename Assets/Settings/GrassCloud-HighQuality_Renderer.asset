@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 86fd82b7c258b4c4e8463b1c23e42406, type: 3}
   m_Name: ATStaticGIRenderFeature
   m_EditorClassIdentifier: 
-  m_Active: 1
+  m_Active: 0
   m_Settings:
     data: {fileID: 11400000, guid: c3ac7c2ee623fe8439fbb29658b252e0, type: 2}
     Event: 150
@@ -73,8 +73,8 @@ MonoBehaviour:
     zFailOperation: 0
   m_ShadowTransparentReceive: 0
   m_RenderingMode: 0
-  m_DepthPrimingMode: 2
-  m_CopyDepthMode: 2
+  m_DepthPrimingMode: 1
+  m_CopyDepthMode: 0
   m_AccurateGbufferNormals: 0
   m_IntermediateTextureMode: 1
 --- !u!114 &500170998908444178
@@ -92,15 +92,8 @@ MonoBehaviour:
   m_Active: 1
   settings:
     hiZEvent: 200
-    copyDepthEvent: 400
-    stopHiZlevel: 8
-    useDepthPrePass: 0
-    useCustomDepthPass: 1
-    hiZShader: {fileID: 4800000, guid: 76f100f4c8d0753479b15e3ceb4c36a0, type: 3}
-    copyDepthShader: {fileID: 4800000, guid: de6b082307faef641ae738ceac99bedf, type: 3}
-    layerMask:
-      serializedVersion: 2
-      m_Bits: 4294967295
+    copyDepthEvent: 500
+    data: {fileID: 11400000, guid: aba3d913b85a265439fc0ec94060adff, type: 2}
 --- !u!114 &739809016742618159
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -113,7 +106,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8996c34eebce97a4ba9ccbc5ddf7e4f6, type: 3}
   m_Name: ATCloudRenderFeature
   m_EditorClassIdentifier: 
-  m_Active: 1
+  m_Active: 0
   cloudData: {fileID: 11400000, guid: 9549e6e28b244674e8337d66f0524027, type: 2}
   renderPassEvent: 450
 --- !u!114 &2500325734344291707
@@ -128,7 +121,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dcafbab8b597aca428d1276807e6b013, type: 3}
   m_Name: ATGrassRenderFeature
   m_EditorClassIdentifier: 
-  m_Active: 0
+  m_Active: 1
   grassData: {fileID: 11400000, guid: 477ddec9a0caca64c920b8373bf92aca, type: 2}
   renderPassEvent: 200
   drawOpaqueEvent: 300
@@ -148,7 +141,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a7352d3c2fff0914eb23774feb50efd3, type: 3}
   m_Name: ATTerrainRenderFeature
   m_EditorClassIdentifier: 
-  m_Active: 1
+  m_Active: 0
   m_Settings:
     data: {fileID: 11400000, guid: db27252609c1ec84cb3666410bfa1451, type: 2}
     PreRenderEvent: 200

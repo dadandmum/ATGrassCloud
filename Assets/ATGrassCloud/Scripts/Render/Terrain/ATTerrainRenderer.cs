@@ -456,6 +456,7 @@ namespace ATGrassCloud
             {
                 cmd.EnableKeyword(buildPatchesShader, new LocalKeyword(buildPatchesShader,"ENABLE_FRUS_CULL"));
             }else{
+                buildPatchesShader.DisableKeyword("ENABLE_FRUS_CULL");
                 cmd.DisableKeyword(buildPatchesShader, new LocalKeyword(buildPatchesShader,"ENABLE_FRUS_CULL"));
             }
             if ( data.UseHiZOcclusionCull)
@@ -471,7 +472,15 @@ namespace ATGrassCloud
             }else{
                 cmd.DisableKeyword(buildPatchesShader, new LocalKeyword(buildPatchesShader,"BOUNDS_DEBUG"));
             }
+
+            if(SystemInfo.usesReversedZBuffer){
+                cmd.EnableKeyword(buildPatchesShader, new LocalKeyword(buildPatchesShader,"AT_REVERSE_Z"));
+            }else{
+                cmd.DisableKeyword(buildPatchesShader, new LocalKeyword(buildPatchesShader,"AT_REVERSE_Z"));
+            }
+
             cmd.SetComputeIntParam(buildPatchesShader,SECTOR_COUNT_WORLD_ID, data.GetTileCountInRow(0,false));
+            cmd.SetComputeFloatParam(buildPatchesShader,HIZ_DEPTH_BIAS_ID, data.hiZDepthBias);
 
             cmd.SetComputeFloatParam(buildPatchesShader,BOUNDS_HEIGHT_REDUNDANCE_ID, data.boundsHeightRedundance);
             cmd.SetComputeBufferParam(buildPatchesShader, buildPatchesKernelID, FINAL_TILE_LIST_ID, finalTileListBuffer);
@@ -566,7 +575,7 @@ namespace ATGrassCloud
             if ( data.debugInfoQuadTree || data.debugInfoCulledBatch || data.debugInfoDesctiption)
                 Debug.Log(">>> Temp Camera " + renderingData.cameraData.camera.name);
 
-
+            bool skipRebuild = false;
             if ( data.snapCamera )
             {
                 var newCamPos = GetSnappedCameraPosition(cam, data.GetTileSize(0)  );
@@ -575,7 +584,7 @@ namespace ATGrassCloud
                 {
                     if (data.debugInfoQuadTree || data.debugInfoCulledBatch || data.debugInfoDesctiption)
                         Debug.Log(">> Skip Rebuild Quad Tree");
-                    return;
+                    skipRebuild = true;
                 }
 
                 cameraPositionWS = newCamPos;
@@ -592,115 +601,119 @@ namespace ATGrassCloud
             context.ExecuteCommandBuffer(cmd);
             cmd.Clear();
 
-
-            using (new ProfilingScope(cmd, new ProfilingSampler("[AT] Traverse Quad Tree")))
+            if (!skipRebuild)
             {
-                cmd.CopyCounterValue(topLevelTileList, travQTIndirectArgsBuffer,0);
-
-                GraphicsBuffer consumeNodeList = tileListPing;
-                GraphicsBuffer appendNodeList = tileListPong;
-                SetupTraverseQuadTree(cmd);
-                
-                for (int lod = data.LODLevel - 1 ; lod >= 0; lod -- )
+                using (new ProfilingScope(cmd, new ProfilingSampler("[AT] Traverse Quad Tree")))
                 {
-                    cmd.SetComputeIntParam( traverseQuadTreeShader, PASS_LOD_ID, lod);
+                    cmd.CopyCounterValue(topLevelTileList, travQTIndirectArgsBuffer, 0);
 
-                    if ( lod == data.LODLevel - 1 )
+                    GraphicsBuffer consumeNodeList = tileListPing;
+                    GraphicsBuffer appendNodeList = tileListPong;
+                    SetupTraverseQuadTree(cmd);
+
+                    for (int lod = data.LODLevel - 1; lod >= 0; lod--)
                     {
-                        cmd.SetComputeBufferParam(traverseQuadTreeShader,traverseQuadTreeKernelID,CONSUME_TILE_LIST_ID,topLevelTileList);
-                    } else {
-                        cmd.SetComputeBufferParam(traverseQuadTreeShader,traverseQuadTreeKernelID,CONSUME_TILE_LIST_ID,consumeNodeList);
-                    }
-                    cmd.SetComputeBufferParam(traverseQuadTreeShader,traverseQuadTreeKernelID,APPEND_TILE_LIST_ID,appendNodeList);
+                        cmd.SetComputeIntParam(traverseQuadTreeShader, PASS_LOD_ID, lod);
 
-                    cmd.SetBufferCounterValue(appendNodeList, 0);
-
-                    cmd.DispatchCompute(traverseQuadTreeShader,traverseQuadTreeKernelID,travQTIndirectArgsBuffer,0);
-
-                    cmd.CopyCounterValue(appendNodeList, travQTIndirectArgsBuffer, 0);
-                    cmd.CopyCounterValue(appendNodeList, _debug_traverseQuadTreeCntBuffer, (uint)lod * sizeof(uint));
-
-                    // context.ExecuteCommandBuffer(cmd);
-                    // cmd.Clear();
-                    
-                    // ping pong the node list 
-                    var temp = consumeNodeList;
-                    consumeNodeList = appendNodeList;
-                    appendNodeList = temp;
-                }
-            
-
-                cmd.CopyCounterValue(finalTileListBuffer, _debug_finalTileCntBuffer, 0);
-                context.ExecuteCommandBuffer(cmd);
-                cmd.Clear();
-
-                if (data.debugInfoQuadTree)
-                {
-                    _debug_finalTileCntBuffer.GetData(_debug_finalTileCntData);
-                    Debug.Log("Final Tile Count From GPU:" + _debug_finalTileCntData[0]);
-                    // For debug 
-                    _debug_traverseQuadTreeCntBuffer.GetData(traverseQuadTreeCntData);
-                    int acc = 0;
-                    int pre = data.TopLevelTileCount * data.TopLevelTileCount;
-                    for (int lod = data.LODLevel - 1 ; lod >= 0; lod--)
-                    {
-                        if (lod == 0)
+                        if (lod == data.LODLevel - 1)
                         {
-                            Debug.Log("LOD " + lod + " Rest Tile Count From GPU:" + (_debug_finalTileCntData[0] - acc) + " Saved to Final : " + (_debug_finalTileCntData[0]));
+                            cmd.SetComputeBufferParam(traverseQuadTreeShader, traverseQuadTreeKernelID, CONSUME_TILE_LIST_ID, topLevelTileList);
                         }
                         else
                         {
-                            var temp = traverseQuadTreeCntData[lod];
-                            acc += (pre - temp / 4);
-                            pre = temp;
-                            Debug.Log("LOD " + lod + " Expended Tile Count From GPU:" + traverseQuadTreeCntData[lod] + " Saved To Final : " + acc);
+                            cmd.SetComputeBufferParam(traverseQuadTreeShader, traverseQuadTreeKernelID, CONSUME_TILE_LIST_ID, consumeNodeList);
                         }
+                        cmd.SetComputeBufferParam(traverseQuadTreeShader, traverseQuadTreeKernelID, APPEND_TILE_LIST_ID, appendNodeList);
+
+                        cmd.SetBufferCounterValue(appendNodeList, 0);
+
+                        cmd.DispatchCompute(traverseQuadTreeShader, traverseQuadTreeKernelID, travQTIndirectArgsBuffer, 0);
+
+                        cmd.CopyCounterValue(appendNodeList, travQTIndirectArgsBuffer, 0);
+                        cmd.CopyCounterValue(appendNodeList, _debug_traverseQuadTreeCntBuffer, (uint)lod * sizeof(uint));
+
+                        // context.ExecuteCommandBuffer(cmd);
+                        // cmd.Clear();
+
+                        // ping pong the node list 
+                        var temp = consumeNodeList;
+                        consumeNodeList = appendNodeList;
+                        appendNodeList = temp;
                     }
 
-                    finalTileListBuffer.GetData(_debug_finalTileListData,0,0,_debug_finalTileCntData[0] * 3 );
-                    string finalTileLog = "";
-                    for (int i = 0; i < _debug_finalTileCntData[0]; i++)
-                    {
-                        finalTileLog += "id" + i + ":" + _debug_finalTileListData[3 * i] + " " + _debug_finalTileListData[3 * i + 1] + " " + _debug_finalTileListData[3 * i + 2] + "|" ;
-                    }
-                    Debug.Log("Final Tile List From GPU:" + finalTileLog);
-                }
 
-                if ( data.debugInfoDesctiption)
-                {
-                    tileDescriptors.GetData(_debug_tileDescriptorsData);
-                    // show first 100 tile descriptors in 10 x 10 ints 
-                    string debugInfo="";
-                    for (int i = 0; i < 10; i++)
+                    cmd.CopyCounterValue(finalTileListBuffer, _debug_finalTileCntBuffer, 0);
+                    context.ExecuteCommandBuffer(cmd);
+                    cmd.Clear();
+
+                    if (data.debugInfoQuadTree)
                     {
-                        debugInfo += " [" + i + "] : ";
-                        for (int j = 0; j < 10; j++)
+                        _debug_finalTileCntBuffer.GetData(_debug_finalTileCntData);
+                        Debug.Log("Final Tile Count From GPU:" + _debug_finalTileCntData[0]);
+                        // For debug 
+                        _debug_traverseQuadTreeCntBuffer.GetData(traverseQuadTreeCntData);
+                        int acc = 0;
+                        int pre = data.TopLevelTileCount * data.TopLevelTileCount;
+                        for (int lod = data.LODLevel - 1; lod >= 0; lod--)
                         {
-                            debugInfo += " " + _debug_tileDescriptorsData[i * 10 + j];
+                            if (lod == 0)
+                            {
+                                Debug.Log("LOD " + lod + " Rest Tile Count From GPU:" + (_debug_finalTileCntData[0] - acc) + " Saved to Final : " + (_debug_finalTileCntData[0]));
+                            }
+                            else
+                            {
+                                var temp = traverseQuadTreeCntData[lod];
+                                acc += (pre - temp / 4);
+                                pre = temp;
+                                Debug.Log("LOD " + lod + " Expended Tile Count From GPU:" + traverseQuadTreeCntData[lod] + " Saved To Final : " + acc);
+                            }
                         }
-                        debugInfo += "\n";
+
+                        finalTileListBuffer.GetData(_debug_finalTileListData, 0, 0, _debug_finalTileCntData[0] * 3);
+                        string finalTileLog = "";
+                        for (int i = 0; i < _debug_finalTileCntData[0]; i++)
+                        {
+                            finalTileLog += "id" + i + ":" + _debug_finalTileListData[3 * i] + " " + _debug_finalTileListData[3 * i + 1] + " " + _debug_finalTileListData[3 * i + 2] + "|";
+                        }
+                        Debug.Log("Final Tile List From GPU:" + finalTileLog);
                     }
 
-                    Debug.Log("Debug Description : \n" + debugInfo);
+                    if (data.debugInfoDesctiption)
+                    {
+                        tileDescriptors.GetData(_debug_tileDescriptorsData);
+                        // show first 100 tile descriptors in 10 x 10 ints 
+                        string debugInfo = "";
+                        for (int i = 0; i < 10; i++)
+                        {
+                            debugInfo += " [" + i + "] : ";
+                            for (int j = 0; j < 10; j++)
+                            {
+                                debugInfo += " " + _debug_tileDescriptorsData[i * 10 + j];
+                            }
+                            debugInfo += "\n";
+                        }
+
+                        Debug.Log("Debug Description : \n" + debugInfo);
+
+                    }
+
+                    context.ExecuteCommandBuffer(cmd);
+                    cmd.Clear();
 
                 }
 
-                context.ExecuteCommandBuffer(cmd);
-                cmd.Clear();
+                using (new ProfilingScope(cmd, new ProfilingSampler("[AT] LOD Map")))
+                {
+                    SetupBuildLODMap(cmd);
 
-            }
+                    int dispatchXNum = lodMapSize / 8;
+                    int dispatchYNum = lodMapSize / 8;
 
-            using (new ProfilingScope(cmd, new ProfilingSampler("[AT] LOD Map")))
-            {
-                SetupBuildLODMap(cmd);
+                    cmd.DispatchCompute(buildLodMapShader, buildLodMapKernelID, dispatchXNum, dispatchYNum, 1);
 
-                int dispatchXNum = lodMapSize / 8;
-                int dispatchYNum = lodMapSize / 8;
-
-                cmd.DispatchCompute(buildLodMapShader, buildLodMapKernelID, dispatchXNum, dispatchYNum, 1);
-
-                context.ExecuteCommandBuffer(cmd);
-                cmd.Clear();
+                    context.ExecuteCommandBuffer(cmd);
+                    cmd.Clear();
+                }
             }
 
             using (new ProfilingScope(cmd, new ProfilingSampler("[AT] Build Patches")))
@@ -773,7 +786,6 @@ namespace ATGrassCloud
 
         public void Dispose()
         {
-            Debug.Log("Dispose in Terrain Renderer");
             tileDescriptors?.Release();
             topLevelTileList?.Release();
             tileListPing?.Release();
@@ -845,6 +857,7 @@ namespace ATGrassCloud
         public static readonly int BOUNDS_HEIGHT_REDUNDANCE_ID = Shader.PropertyToID("_BoundsHeightRedundance");
         public static readonly int FINAL_TILE_LIST_COUNT_ID= Shader.PropertyToID("_FinalTileListCount");
         public static readonly int SECTOR_COUNT_WORLD_ID = Shader.PropertyToID("_SectorCountWorld");
+        public static readonly int HIZ_DEPTH_BIAS_ID = Shader.PropertyToID("_HizDepthBias");
         // Render Material 
 
         public static readonly int RENDER_HEIGHT_MAP_ID  = Shader.PropertyToID("_HeightMap");

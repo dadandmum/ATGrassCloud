@@ -60,6 +60,7 @@
             Cull Off
             ZTest Always
             Blend One OneMinusSrcAlpha
+            ZWrite Off
             // Blend One Zero
             // Blend SrcAlpha OneMinusSrcAlpha
 
@@ -90,7 +91,8 @@
                
                 float4 cascadeRange = _CascadeRange;
                 float maxCascadeDis = _CascadeRange.y + 1.0 / _CascadeRange.w;
-                float depthDistance = depth_LinearEyeDepth( depth_GetDepthFull(uv)) - 1.0;
+                float depthDistance = depth_LinearEyeDepth( depth_GetDepthFull(uv), _ProjectionParams) - 1.0;
+                
                 float maxDistance = min(maxCascadeDis, depthDistance)  ;
 
                 float3 camPos = _WorldSpaceCameraPos;
@@ -98,7 +100,7 @@
                 float3 lighting = mainLight.color;
                 float3 lightDir = mainLight.direction;
                 // float depth = LOAD_TEXTURE2D_MSAA(_CameraDepthAttachment, uv , 0 ).r;
-                // float worldDistance = depth_Depth2WorldDistance(depth);
+                // float worldDistance = depth_Depth2WorldDistance(depth, _ProjectionParams);
                 // return half4( worldDistance, 0, 0, 1);
                 float startDistance = GetCloudObjectSurfaceDistance( camPos, viewDir, maxDistance);
 

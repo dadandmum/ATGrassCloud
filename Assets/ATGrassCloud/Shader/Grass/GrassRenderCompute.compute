@@ -159,9 +159,9 @@ uint DistanceDensityCulling( float3 worldPos , int2 tileIndex, int index )
 uint OcclusionCulling(float4 posCS )
 {
     float depthGrass = depth_GetDepthByPosCS(posCS);
-    float depthTex = depth_GetDepthFromDepthTex(posCS);
+    float depthHiZ = depth_GetDepthHiZ(posCS,0);
 
-    return ( depthGrass > depthTex ) ? 1 : 0 ;
+    return ( depthGrass > depthHiZ ) ? 1 : 0 ;
  
     // return depthGrass < 0.03 ? 1 : 0 ;
 
@@ -228,12 +228,10 @@ void CS_CalculatePosition(uint3 id : SV_DispatchThreadID)
         // uint frustumCulling = FrustumCulling( abs(positionCS));
         uint frustumCulling =  _UseFrustumCulling? FrustumCulling2( positionCS) : 1;
 
-
         uint occlusionCulling0 = OcclusionCulling(positionCS);
         float4 positionCSOffset = mul(_ViewProjectMatrix, float4(positionWS + float3(0, _OccludHeightOffset, 0), 1.0));
         uint heightOcclusionTest = OcclusionCulling(positionCSOffset);
         uint occlusionCulling =  _UseDepthOcclusionCulling? ( occlusionCulling0 || heightOcclusionTest) : 1;
-
 
         uint distanceDensityCulling = 1; 
         

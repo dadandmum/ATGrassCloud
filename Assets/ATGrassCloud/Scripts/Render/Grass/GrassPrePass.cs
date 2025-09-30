@@ -96,11 +96,9 @@ namespace ATGrassCloud
 
             CommandBuffer cmd = CommandBufferPool.Get("[AT] GrassPrePass");
 
-
-
             if (generateHeightMat)
             {
-                using (new ProfilingScope(cmd, new ProfilingSampler("[AT] Grass Height Map RT")))
+                // using (new ProfilingScope(cmd, new ProfilingSampler("[AT] Grass Height Map RT")))
                 {
                     // for each cascade do generate height map
                     for (int i = 0; i < cascades.Count; i++)
@@ -109,6 +107,8 @@ namespace ATGrassCloud
                         cascade.DrawHeightMap(context , ref renderingData , cmd , false );
                     }
                 }
+                context.ExecuteCommandBuffer(cmd);
+                cmd.Clear();
             }
 
 
@@ -116,7 +116,7 @@ namespace ATGrassCloud
             cmd.SetViewProjectionMatrices(renderingData.cameraData.camera.worldToCameraMatrix, renderingData.cameraData.camera.projectionMatrix);
             cmd.SetRenderTarget(BuiltinRenderTextureType.CameraTarget);
 
-            using (new ProfilingScope(cmd, new ProfilingSampler("[AT] Calculate Grass Data")))
+            // using (new ProfilingScope(cmd, new ProfilingSampler("[AT] Calculate Grass Data")))
             {
                 for (int i = 0; i < cascades.Count; i++)
                 {

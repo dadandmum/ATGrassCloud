@@ -1,3 +1,5 @@
+using JetBrains.Annotations;
+using Microsoft.SqlServer.Server;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -14,31 +16,35 @@ namespace ATGrassCloud
 
             public RenderPassEvent copyDepthEvent = RenderPassEvent.AfterRenderingOpaques;
 
-            public int stopHiZlevel = 8;
-            public bool useDepthPrePass = true;
-            public bool useCustomDepthPass = true;
-            public Shader hiZShader;
-            public Shader copyDepthShader;
-            public LayerMask layerMask = ~0;
+            // public int stopHiZlevel = 8;
+            // public bool useDepthPrePass = true;
+            // public bool useCustomDepthPass = true;
+            // public Shader hiZShader;
+            // public Shader copyDepthShader;
+            // public LayerMask layerMask = ~0;
 
+            public ATHiZData data;
         }
 
         public ATHiZSettings settings = new ATHiZSettings();
 
-        private HiZPass m_ScriptablePass;
+        private HiZPass m_HiZPass;
         private ATCopyDepthPass m_CopyDepthPass;
+
+        private ATDepthRenderer depthRenderer;
 
         public override void Create() 
         {
-            m_ScriptablePass = new HiZPass(
-                settings.hiZShader,
-                settings.stopHiZlevel,  
-                settings.useDepthPrePass,
-                settings.useCustomDepthPass,
-                settings.layerMask);
-
-            m_ScriptablePass.renderPassEvent = settings.hiZEvent;
-            m_CopyDepthPass = new ATCopyDepthPass(settings.copyDepthShader);
+            depthRenderer = new ATDepthRenderer(settings.data);
+            // m_HiZPass = new HiZPass(
+            //     settings.hiZShader,
+            //     settings.stopHiZlevel,  
+            //     settings.useDepthPrePass,
+            //     settings.useCustomDepthPass,
+            //     settings.layerMask);
+            m_HiZPass = new HiZPass(depthRenderer);
+            m_HiZPass.renderPassEvent = settings.hiZEvent;
+            m_CopyDepthPass = new ATCopyDepthPass(depthRenderer);
             m_CopyDepthPass.renderPassEvent = settings.copyDepthEvent;
 
         }
@@ -47,7 +53,7 @@ namespace ATGrassCloud
         {
             // if (renderingData.cameraData.cameraType == CameraType.Game)
             {
-                renderer.EnqueuePass(m_ScriptablePass);
+                renderer.EnqueuePass(m_HiZPass);
                 renderer.EnqueuePass(m_CopyDepthPass);
             }
         }
@@ -56,7 +62,9 @@ namespace ATGrassCloud
         {
             if ( disposing )
             {
-                m_ScriptablePass.Dispose();
+                m_HiZPass?.Dispose();
+                // m_CopyDepthPass?.Dispose();
+                depthRenderer?.Dispose();    
             }
         }
 

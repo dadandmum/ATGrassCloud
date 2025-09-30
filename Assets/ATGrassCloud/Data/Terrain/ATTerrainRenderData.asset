@@ -24,8 +24,8 @@ MonoBehaviour:
   tileBufferSize: 75
   worldSize: {x: 1024, y: 200, z: 1024}
   UseFrustumCull: 1
-  UseHiZOcclusionCull: 0
-  boundsHeightRedundance: 0.2
+  UseHiZOcclusionCull: 1
+  boundsHeightRedundance: 0.86
   hiZDepthBias: 0.2
   lodSeamless: 1
   snapCamera: 0
@@ -40,6 +40,9 @@ MonoBehaviour:
   - {fileID: 2800000, guid: 79da9c667489b3e4c90a929d829ddd15, type: 3}
   - {fileID: 2800000, guid: 780e587e8c031324eb5e8c830a6cda4f, type: 3}
   - {fileID: 2800000, guid: ea4110f82d022844d9a754b0bc07ced6, type: 3}
+  - {fileID: 2800000, guid: bd4df8b23deeeb940aaa800a4addbe0a, type: 3}
+  - {fileID: 2800000, guid: df574ff57311b3f40bf56938f00c0c66, type: 3}
+  - {fileID: 2800000, guid: 196a2df58e23956478313a7843ee4407, type: 3}
   normalMap: {fileID: 2800000, guid: 371c44b39d09b494aa7947b53c7ba5d3, type: 3}
   SplatMap0: {fileID: 2800000, guid: 33bd03cb7a3b4934283bba731e8180c2, type: 3}
   SplatMap1: {fileID: 2800000, guid: b3bd75a2aa0064c4bb9c31b37cb53498, type: 3}
@@ -59,6 +62,6 @@ MonoBehaviour:
   debugInfoQuadTree: 0
   debugInfoDesctiption: 0
   debugInfoCulledBatch: 0
-  debugRenderPatch: 1
+  debugRenderPatch: 0
   debugRenderTile: 0
   debugRenderBoundingBox: 1

@@ -27,9 +27,9 @@ namespace ATGrassCloud
             {
                 return;
             }
-            CommandBuffer cmd = CommandBufferPool.Get();
+            CommandBuffer cmd = CommandBufferPool.Get("[AT] Wind Debug Pass");
 
-            using (new ProfilingScope(cmd, new ProfilingSampler("Wind Debug")))
+            // using (new ProfilingScope(cmd, new ProfilingSampler("Wind Debug")))
             {
                 
                 cmd.Blit(windPass.GetCurrentWindTexture(), renderingData.cameraData.renderer.cameraColorTargetHandle);

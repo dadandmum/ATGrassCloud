@@ -1,4 +1,4 @@
-Shader "Unlit/MipmapCalculationShader"
+Shader "ATGrassCloud/HiZMipmap"
 {
     Properties
     {
@@ -16,6 +16,8 @@ Shader "Unlit/MipmapCalculationShader"
             ZTest Always
             
             CGPROGRAM
+            #pragma shader_feature AT_REVERSE_Z
+
             #pragma vertex vert
             #pragma fragment frag
 
@@ -41,12 +43,16 @@ Shader "Unlit/MipmapCalculationShader"
             {
                 float4 depth;
                 float offset = _MainTex_TexelSize.x / 2;
-                depth.x = tex2D(_MainTex, uv);
-                depth.y = tex2D(_MainTex, uv + float2(0, offset));
-                depth.z = tex2D(_MainTex, uv + float2(offset, 0));
-                depth.w = tex2D(_MainTex, uv + float2(offset, offset));
+                depth.x = tex2D(_MainTex, uv + float2(-offset, -offset));
+                depth.y = tex2D(_MainTex, uv + float2(-offset, offset));
+                depth.z = tex2D(_MainTex, uv + float2(offset, offset));
+                depth.w = tex2D(_MainTex, uv + float2(offset, -offset));
 
+                #if AT_REVERSE_Z || UNITY_REVERSED_Z
                 return min(min(depth.x, depth.y), min(depth.z, depth.w));
+                #else
+                return max(max(depth.x, depth.y), max(depth.z, depth.w));
+                #endif 
             }
 
             v2f vert (appdata v)

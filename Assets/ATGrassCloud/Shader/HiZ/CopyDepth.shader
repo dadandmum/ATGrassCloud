@@ -1,4 +1,4 @@
-Shader "Unlit/ATCopyDepth"
+Shader "AtGrassCloud/CopyDepth"
 {
     Properties
     {

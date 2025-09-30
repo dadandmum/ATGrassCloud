@@ -1,8 +1,11 @@
 #pragma kernel BuildPatches
+
+#pragma multi_compile __ AT_REVERSE_Z
 #pragma multi_compile_local __ ENABLE_FRUS_CULL
 #pragma multi_compile_local __ ENABLE_HIZ_CULL
 #pragma multi_compile_local __ BOUNDS_DEBUG
 
+#include "Assets/ATGrassCloud/Shader/Lib/DepthZLib.hlsl"
 #include "Assets/ATGrassCloud/Shader/Lib/TerrainLib.hlsl"
 
 StructuredBuffer<uint3> FinalTileList;
@@ -13,10 +16,10 @@ ConsumeStructuredBuffer<RenderPatch> PatchConsumeList;
 AppendStructuredBuffer<RenderPatch> CulledPatchList;
 
 uniform float _HizDepthBias;
-Texture2D<float4> _HizMap;
-uniform float4 _HizMapSize;
-uniform float4x4 _HizCameraMatrixVP;
-uniform float3 _HizCameraPositionWS;
+// Texture2D<float4> _HizMap;
+// uniform float4 _HizMapSize;
+// uniform float4x4 _HizCameraMatrixVP;
+// uniform float3 _HizCameraPositionWS;
  
 uniform float _BoundsHeightRedundance;
 uniform int _SectorCountWorld;
@@ -87,6 +90,77 @@ bool FrustumCull(float4 planes[6],Bounds bounds){
     IsBoundsOutSidePlane(planes[5],bounds);
 }
 
+float SampleHiz(float2 uv,float mip,float mipTexSize){
+    // uint2 coord = floor(uv * mipTexSize);
+    // coord = min(coord,round(mipTexSize)-1);
+    // return _DepthHiZTex.mips[mip][coord].r; 
+    return depth_GetDepthHiZ(uv,(int)mip);
+}
+
+
+uint GetHizMip(Bounds boundsUVD){
+    float3 minP = boundsUVD.minPosition;
+    float3 maxP = boundsUVD.maxPosition;
+    // return depth_GetHizMip(maxP.xy - minP.xy);
+    float2 size = (maxP.xy - minP.xy) * _DepthHiZSize;
+    uint2 mip2 = ceil(log2(size));
+    uint mip = clamp(max(mip2.x,mip2.y),1,_DepthHiZMipmapCount - 1);
+    return mip;
+}
+
+
+Bounds GetBoundsUVD(Bounds boundsWS){
+
+    Bounds boundsUVD;
+
+    float3 boundsMin = boundsWS.minPosition;
+    float3 boundsMax = boundsWS.maxPosition;
+
+    float3 p0 = depth_WorldPos2UVD(boundsMin);
+    float3 p1 = depth_WorldPos2UVD(boundsMax);
+    float3 p2 = depth_WorldPos2UVD(float3(boundsMin.x,boundsMin.y,boundsMax.z));
+    float3 p3 = depth_WorldPos2UVD(float3(boundsMin.x,boundsMax.y,boundsMin.z));
+    float3 p4 = depth_WorldPos2UVD(float3(boundsMin.x,boundsMax.y,boundsMax.z));
+    float3 p5 = depth_WorldPos2UVD(float3(boundsMax.x,boundsMin.y,boundsMax.z));
+    float3 p6 = depth_WorldPos2UVD(float3(boundsMax.x,boundsMax.y,boundsMin.z));
+    float3 p7 = depth_WorldPos2UVD(float3(boundsMax.x,boundsMin.y,boundsMin.z));
+
+    float3 min1 = min(min(p0,p1),min(p2,p3));
+    float3 min2 = min(min(p4,p5),min(p6,p7));
+    boundsUVD.minPosition = min(min1,min2);
+
+    float3 max1 = max(max(p0,p1),max(p2,p3));
+    float3 max2 = max(max(p4,p5),max(p6,p7));
+    boundsUVD.maxPosition = max(max1,max2);
+    return boundsUVD;
+}
+
+//Hiz Cull
+bool HizOcclusionCull(Bounds bounds){
+    bounds.minPosition -= normalize(bounds.minPosition - _DepthHiZCameraPosition) * _HizDepthBias;
+    bounds.maxPosition -= normalize(bounds.maxPosition - _DepthHiZCameraPosition ) * _HizDepthBias;
+
+    Bounds boundsUVD = GetBoundsUVD(bounds);
+
+    uint mip = GetHizMip(boundsUVD);
+
+    float3 minP = boundsUVD.minPosition;
+    float3 maxP = boundsUVD.maxPosition;
+    
+    float mipTexSize = round(_DepthHiZSize / pow(2,mip));
+    float d1 = SampleHiz(minP.xy,mip,mipTexSize); 
+    float d2 = SampleHiz(maxP.xy,mip,mipTexSize); 
+    float d3 = SampleHiz(float2(minP.x,maxP.y),mip,mipTexSize);
+    float d4 = SampleHiz(float2(maxP.x,minP.y),mip,mipTexSize);
+    
+    #if AT_REVERSE_Z
+    float depth = maxP.z;
+    return d1 > depth && d2 > depth && d3 > depth && d4 > depth;
+    #else
+    float depth = minP.z;
+    return d1 < depth && d2 < depth && d3 < depth && d4 < depth;
+    #endif
+}
 
 bool Cull(Bounds bounds){
     #if ENABLE_FRUS_CULL
@@ -94,11 +168,11 @@ bool Cull(Bounds bounds){
         return true;
     }
     #endif
-    // #if ENABLE_HIZ_CULL
-    // if(HizOcclusionCull(bounds)){
-    //     return true;
-    // }
-    // #endif
+    #if ENABLE_HIZ_CULL
+    if(HizOcclusionCull(bounds)){
+        return true;
+    }
+    #endif
     return false;
 }
 
@@ -153,7 +227,9 @@ void BuildPatches(uint3 id : SV_DispatchThreadID,uint3 groupId:SV_GroupID,uint3 
     BoundsDebug boundsDebug;
     boundsDebug.bounds = bounds;
     boundsDebug.color = float4((bounds.minPosition + _TerrainWorldSize * 0.5) / _TerrainWorldSize ,1);
-    boundsDebug.color.rgb = lerp(boundsDebug.color,GetDebugColor(tileLoc.z),0.8);
+    boundsDebug.color.rgb = pow( boundsDebug.color , 2.0) * lerp( GetDebugColor(tileLoc.z) , float3(1.0,1.0,1.0) , 0.25);
+    Bounds boundsUVD = GetBoundsUVD(bounds);
+
     PatchBoundsList.Append(boundsDebug);
     #endif
 }

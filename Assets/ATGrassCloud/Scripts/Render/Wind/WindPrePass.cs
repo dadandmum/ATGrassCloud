@@ -94,7 +94,7 @@ namespace ATGrassCloud
 
             if (renderingData.cameraData.cameraType != m_CameraType) return;
 
-            CommandBuffer cmd = CommandBufferPool.Get();
+            CommandBuffer cmd = CommandBufferPool.Get("[AT] Wind Pre-Pass");
 
             
             using (new ProfilingScope(cmd, new ProfilingSampler(m_ProfilerTag)))
@@ -112,12 +112,10 @@ namespace ATGrassCloud
                 m_UseFirst = !m_UseFirst;
 
                 cmd.SetGlobalTexture("_WindResultTex", WindRT_current);
-                context.ExecuteCommandBuffer(cmd);
-                cmd.Clear();
-                CommandBufferPool.Release(cmd);
-
-                
             }
+            context.ExecuteCommandBuffer(cmd);
+            cmd.Clear();
+            CommandBufferPool.Release(cmd);
         }
 
 
