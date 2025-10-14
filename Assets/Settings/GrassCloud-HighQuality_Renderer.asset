@@ -141,7 +141,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a7352d3c2fff0914eb23774feb50efd3, type: 3}
   m_Name: ATTerrainRenderFeature
   m_EditorClassIdentifier: 
-  m_Active: 0
+  m_Active: 1
   m_Settings:
     data: {fileID: 11400000, guid: db27252609c1ec84cb3666410bfa1451, type: 2}
     PreRenderEvent: 200

@@ -64,4 +64,4 @@ MonoBehaviour:
   debugInfoCulledBatch: 0
   debugRenderPatch: 0
   debugRenderTile: 0
-  debugRenderBoundingBox: 1
+  debugRenderBoundingBox: 0

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 022526325db5e3c4bb834320e32e70e7, type: 3}
   m_Name: ATHiZData
   m_EditorClassIdentifier: 
-  depthGenerationType: 1
+  depthGenerationType: 2
   stopHiZLevel: 1
   layerMask:
     serializedVersion: 2

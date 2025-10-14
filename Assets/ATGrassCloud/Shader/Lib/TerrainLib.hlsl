@@ -158,6 +158,7 @@ float3 GetTilePositionWS(uint2 tileLoc,uint lod){
     return float3(tilePositionWS.x,y,tilePositionWS.y);
 }
 
+#include "TerrainShadingLib.hlsl"
 
 
 #endif
